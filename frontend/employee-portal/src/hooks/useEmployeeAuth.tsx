@@ -7,23 +7,23 @@ export const useEmployeeAuth = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const employeeUser = localStorage.getItem('employeeUser');
-    const employeeEmail = localStorage.getItem('employeeEmail');
-    
-    if (employeeUser === 'true' && employeeEmail) {
+    const employeeUser = localStorage.getItem("employeeUser");
+    const employeeEmail = localStorage.getItem("employeeEmail");
+
+    if (employeeUser === "true" && employeeEmail) {
       setIsAuthenticated(true);
       setUserEmail(employeeEmail);
     } else {
-      navigate('/employee/login');
+      navigate("/login");
     }
   }, [navigate]);
 
   const logout = () => {
-    localStorage.removeItem('employeeUser');
-    localStorage.removeItem('employeeEmail');
+    localStorage.removeItem("employeeUser");
+    localStorage.removeItem("employeeEmail");
     setIsAuthenticated(false);
     setUserEmail(null);
-    navigate('/employee/login');
+    navigate("/login");
   };
 
   return { isAuthenticated, userEmail, logout };

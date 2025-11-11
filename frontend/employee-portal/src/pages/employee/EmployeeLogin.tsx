@@ -21,11 +21,11 @@ export default function EmployeeLogin() {
     }
     
     // Store employee session (separate from public users)
-    localStorage.setItem('employeeUser', 'true');
-    localStorage.setItem('employeeEmail', email);
+    localStorage.setItem("employeeUser", "true");
+    localStorage.setItem("employeeEmail", email);
     
     toast.success("Login successful!");
-    navigate("/employee/dashboard");
+    navigate("/dashboard");
   };
 
   return (
@@ -86,9 +86,9 @@ export default function EmployeeLogin() {
           </CardContent>
         </Card>
 
-        <div className="text-center text-sm text-muted-foreground">
-          <p>For vendor portal, <a href="/" className="text-primary hover:underline">click here</a></p>
-        </div>
+        <p className="text-center text-sm text-muted-foreground">
+          Need vendor access? Contact the SLBPA digital team.
+        </p>
       </div>
     </div>
   );

@@ -1,73 +1,30 @@
-# Welcome to your Lovable project
+# Book Fair User Portal
 
-## Project info
+This Vite + React (TypeScript) app delivers the vendor-facing experience for reserving stalls at CIBF 2025. It provides the marketing landing page, vendor dashboard, stall reservation flow, confirmation experience, and self-serve reservation history.
 
-**URL**: https://lovable.dev/projects/6de3a069-598d-4349-82eb-530e2a9c4ec6
+## Getting Started
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/6de3a069-598d-4349-82eb-530e2a9c4ec6) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The portal persists lightweight session state in `localStorage` under the `public*` keys. It is now isolated from the organiser portal that lives in `../employee-portal`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Available Scripts
 
-**Use GitHub Codespaces**
+- `npm run dev` – start Vite in development mode
+- `npm run build` – bundle for production
+- `npm run preview` – serve the production build locally
+- `npm run lint` – run ESLint
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Directory Layout
 
-## What technologies are used for this project?
+- `src/pages` – landing, login, dashboard, reservation, genres, success, and 404 views
+- `src/components` – shared shadcn UI primitives plus the public `Header`
+- `src/hooks/usePublicAuth.tsx` – simple localStorage guard for the vendor dashboard/reservation flow
+- `src/data/mockData.ts` – mock stall + genre data used across screens
 
-This project is built with:
+## Related Projects
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/6de3a069-598d-4349-82eb-530e2a9c4ec6) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `../employee-portal` is the organiser/employee frontend. Each portal now has its own dependencies, `package.json`, and build outputs so they can be deployed separately.
