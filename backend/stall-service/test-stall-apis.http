@@ -1,0 +1,138 @@
+### Test Stall Service APIs
+### Base URL
+@baseUrl = http://localhost:8085/api
+
+### ============================================
+### EVENT ENDPOINTS
+### ============================================
+
+### 1. Create a new event
+POST {{baseUrl}}/events
+Content-Type: application/json
+
+{
+  "year": 2025,
+  "name": "Colombo International Book Fair 2025",
+  "startDate": "2025-09-15",
+  "endDate": "2025-09-25",
+  "location": "BMICH, Colombo",
+  "status": "UPCOMING"
+}
+
+### 2. Get all events
+GET {{baseUrl}}/events
+
+### 3. Get event by ID (replace with actual UUID from create response)
+@eventId = 123e4567-e89b-12d3-a456-426614174000
+GET {{baseUrl}}/events/{{eventId}}
+
+### 4. Update event
+PUT {{baseUrl}}/events/{{eventId}}
+Content-Type: application/json
+
+{
+  "year": 2025,
+  "name": "Colombo International Book Fair 2025 - Updated",
+  "startDate": "2025-09-15",
+  "endDate": "2025-09-30",
+  "location": "BMICH, Colombo",
+  "status": "ONGOING"
+}
+
+### 5. Delete event
+DELETE {{baseUrl}}/events/{{eventId}}
+
+### ============================================
+### STALL ENDPOINTS
+### ============================================
+
+### 6. Create a new stall
+POST {{baseUrl}}/stalls
+Content-Type: application/json
+
+{
+  "eventId": "{{eventId}}",
+  "stallCode": "A-101",
+  "sizeCategory": "MEDIUM",
+  "price": 150000.00,
+  "locationX": 10.5,
+  "locationY": 20.3,
+  "isReserved": false
+}
+
+### 7. Get all stalls
+GET {{baseUrl}}/stalls
+
+### 8. Get stall by ID (replace with actual UUID)
+@stallId = 123e4567-e89b-12d3-a456-426614174001
+GET {{baseUrl}}/stalls/{{stallId}}
+
+### 9. Get stalls by event
+GET {{baseUrl}}/stalls/event/{{eventId}}
+
+### 10. Get available stalls by event
+GET {{baseUrl}}/stalls/event/{{eventId}}/available
+
+### 11. Get stalls by size category
+GET {{baseUrl}}/stalls/size/MEDIUM
+
+### 12. Reserve a stall
+PUT {{baseUrl}}/stalls/{{stallId}}/reserve
+
+### 13. Unreserve a stall
+PUT {{baseUrl}}/stalls/{{stallId}}/unreserve
+
+### 14. Update stall
+PUT {{baseUrl}}/stalls/{{stallId}}
+Content-Type: application/json
+
+{
+  "eventId": "{{eventId}}",
+  "stallCode": "A-101",
+  "sizeCategory": "LARGE",
+  "price": 200000.00,
+  "locationX": 10.5,
+  "locationY": 20.3,
+  "isReserved": false
+}
+
+### 15. Delete stall
+DELETE {{baseUrl}}/stalls/{{stallId}}
+
+### ============================================
+### USER SNAPSHOT ENDPOINTS
+### ============================================
+
+### 16. Create or update user snapshot
+POST {{baseUrl}}/user-snapshots
+Content-Type: application/json
+
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "role": "VENDOR",
+  "status": "ACTIVE"
+}
+
+### 17. Get all user snapshots
+GET {{baseUrl}}/user-snapshots
+
+### 18. Get user snapshot by ID
+@snapshotId = 123e4567-e89b-12d3-a456-426614174002
+GET {{baseUrl}}/user-snapshots/{{snapshotId}}
+
+### 19. Get user snapshot by user ID
+@userId = 550e8400-e29b-41d4-a716-446655440000
+GET {{baseUrl}}/user-snapshots/user/{{userId}}
+
+### 20. Delete user snapshot
+DELETE {{baseUrl}}/user-snapshots/{{snapshotId}}
+
+### ============================================
+### HEALTH CHECK
+### ============================================
+
+### 21. Health check
+GET http://localhost:8085/actuator/health
