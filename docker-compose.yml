@@ -104,7 +104,27 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8085
-      # Add database connection details if needed
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://stall-postgres:5432/stall_service_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    networks:
+      - bookfair-network
+    depends_on:
+      - stall-postgres
+    restart: unless-stopped
+
+  # PostgreSQL Database for Stall Service
+  stall-postgres:
+    image: postgres:16-alpine
+    container_name: bookfair-stall-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=stall_service_db
+    volumes:
+      - stall-postgres-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
     restart: unless-stopped
@@ -198,7 +218,8 @@ networks:
   bookfair-network:
     driver: bridge
 
-# volumes:
+volumes:
+  stall-postgres-data:
 #   postgres-data:
 #   redis-data:
 #   mysql-data:

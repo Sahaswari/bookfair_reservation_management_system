@@ -1,0 +1,151 @@
+# ============================================================================
+# Root Level .gitignore for Bookfair Reservation Management System
+# ============================================================================
+
+# ============================================================================
+# Environment Variables
+# ============================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ============================================================================
+# Java / Maven
+# ============================================================================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# ============================================================================
+# Spring Boot
+# ============================================================================
+*.log
+logs/
+spring-boot-*.log
+
+# ============================================================================
+# IDEs
+# ============================================================================
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+.metadata
+bin/
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ============================================================================
+# Operating Systems
+# ============================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================================================
+# Node.js / Frontend
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Frontend builds
+/frontend/*/build/
+/frontend/*/dist/
+/frontend/*/.next/
+/frontend/*/out/
+
+# ============================================================================
+# Docker
+# ============================================================================
+docker-compose.override.yml
+
+# ============================================================================
+# Database
+# ============================================================================
+*.sql
+*.db
+*.sqlite
+data/
+postgres-data/
+mysql-data/
+redis-data/
+
+# ============================================================================
+# Testing
+# ============================================================================
+coverage/
+test-results/
+
+# ============================================================================
+# Temporary files
+# ============================================================================
+*.tmp
+*.temp
+*.cache
+.temp/
+
+# ============================================================================
+# Sensitive / Security
+# ============================================================================
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+secrets/
+credentials/
