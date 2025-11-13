@@ -19,6 +19,7 @@ export default function Login() {
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [contactPerson, setContactPerson] = useState("");
+  const [contactPersonId, setContactPersonId] = useState("");
   const [phone, setPhone] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
 
@@ -39,7 +40,7 @@ export default function Login() {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regEmail || !regPassword || !regConfirmPassword || !businessName || !contactPerson || !phone) {
+    if (!regEmail || !regPassword || !regConfirmPassword || !businessName || !contactPerson || !contactPersonId || !phone) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -137,6 +138,15 @@ export default function Login() {
                       placeholder="John Doe"
                       value={contactPerson}
                       onChange={(e) => setContactPerson(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contact-person-id">Contact Person ID No</Label>
+                    <Input
+                      id="contact-person-id"
+                      placeholder="ID Number"
+                      value={contactPersonId}
+                      onChange={(e) => setContactPersonId(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
