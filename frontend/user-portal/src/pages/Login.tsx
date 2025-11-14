@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import loginImage from "@/assets/login.jpg";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -61,141 +62,155 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <div>
-              <h1 className="text-lg font-bold">CIBF 2025</h1>
-              <p className="text-xs text-muted-foreground">Book Fair</p>
-            </div>
-          </Link>
-          <Link to="/">
-            <Button variant="ghost" size="sm">Back to Home</Button>
-          </Link>
+  <div className="min-h-screen bg-background">
+    {/* Header (unchanged) */}
+    <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <div className="container flex h-16 items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <BookOpen className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-lg font-bold">CIBF 2025</h1>
+            <p className="text-xs text-muted-foreground">Book Fair</p>
+          </div>
+        </Link>
+        <Link to="/">
+          <Button variant="ghost" size="sm">Back to Home</Button>
+        </Link>
+      </div>
+    </header>
+
+    {/* ======== New Layout (Two Panel) ======== */}
+    <div className="w-full flex items-center justify-center py-10">
+      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 rounded-3xl overflow-hidden shadow-xl bg-card">
+
+        {/* ========= LEFT: Login Card ========= */}
+        <div className="p-10 bg-gradient-to-b from-card to-background">
+          <Card className="border-none shadow-none bg-transparent">
+            <CardHeader className="text-left px-0">
+              <CardTitle className="text-2xl">Vendor Portal</CardTitle>
+              <CardDescription>Login or register to reserve your stall</CardDescription>
+            </CardHeader>
+
+            <CardContent className="px-0">
+              <Tabs defaultValue="login" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Login</TabsTrigger>
+                  <TabsTrigger value="register">Register</TabsTrigger>
+                </TabsList>
+
+                {/* Login */}
+                <TabsContent value="login">
+                  <form onSubmit={handleLogin} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="vendor@example.com"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Password</Label>
+                      <Input
+                        type="password"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <Button type="submit" className="w-full">Login</Button>
+                  </form>
+                </TabsContent>
+
+                {/* Register */}
+                <TabsContent value="register">
+                  <form onSubmit={handleRegister} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Business Name</Label>
+                      <Input
+                        placeholder="Your Publishing House"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Contact Person</Label>
+                      <Input
+                        placeholder="John Doe"
+                        value={contactPerson}
+                        onChange={(e) => setContactPerson(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      <Input
+                        type="tel"
+                        placeholder="+94 XX XXX XXXX"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="vendor@example.com"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Password</Label>
+                      <Input
+                        type="password"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Confirm Password</Label>
+                      <Input
+                        type="password"
+                        value={regConfirmPassword}
+                        onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={acceptTerms}
+                        onCheckedChange={(c) => setAcceptTerms(c as boolean)}
+                      />
+                      <Label className="text-sm">I accept the terms and conditions</Label>
+                    </div>
+
+                    <Button type="submit" className="w-full">Register</Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
-      </header>
 
-      {/* Login Content */}
-      <div className="container flex items-center justify-center py-12 md:py-24">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Vendor Portal</CardTitle>
-            <CardDescription>Login or register to reserve your stall</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
+        {/* ========= RIGHT: Image Panel ========= */}
+        <div className="hidden md:block relative">
+          <img
+            src={loginImage}
+            alt="Login visual"
+            className="w-full h-full object-cover"
+          />
+        </div>
 
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="vendor@example.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Login
-                  </Button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="register">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="business-name">Business Name</Label>
-                    <Input
-                      id="business-name"
-                      placeholder="Your Publishing House"
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contact-person">Contact Person</Label>
-                    <Input
-                      id="contact-person"
-                      placeholder="John Doe"
-                      value={contactPerson}
-                      onChange={(e) => setContactPerson(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+94 XX XXX XXXX"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-email">Email</Label>
-                    <Input
-                      id="reg-email"
-                      type="email"
-                      placeholder="vendor@example.com"
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-password">Password</Label>
-                    <Input
-                      id="reg-password"
-                      type="password"
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-confirm-password">Confirm Password</Label>
-                    <Input
-                      id="reg-confirm-password"
-                      type="password"
-                      value={regConfirmPassword}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="terms"
-                      checked={acceptTerms}
-                      onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-                    />
-                    <Label htmlFor="terms" className="text-sm">
-                      I accept the terms and conditions
-                    </Label>
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Register
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
       </div>
     </div>
-  );
+  </div>
+);
+
 }
