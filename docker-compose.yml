@@ -1,0 +1,204 @@
+version: '3.8'
+
+services:
+  # Backend Services
+  
+  # API Gateway Service
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: bookfair-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8080
+    networks:
+      - bookfair-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./backend/auth-service
+      dockerfile: Dockerfile
+    container_name: bookfair-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8081
+      # Add database connection details
+      # - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/auth_db
+      # - SPRING_DATASOURCE_USERNAME=postgres
+      # - SPRING_DATASOURCE_PASSWORD=postgres
+    networks:
+      - bookfair-network
+    # depends_on:
+    #   - postgres
+    restart: unless-stopped
+
+  # Genre Service
+  genre-service:
+    build:
+      context: ./backend/genre-service
+      dockerfile: Dockerfile
+    container_name: bookfair-genre-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8082
+      # Add database connection details if needed
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./backend/notification-service
+      dockerfile: Dockerfile
+    container_name: bookfair-notification-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8083
+      # Add email/SMS service configurations
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  # Reservation Service
+  reservation-service:
+    build:
+      context: ./backend/reservation-service
+      dockerfile: Dockerfile
+    container_name: bookfair-reservation-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8084
+      # Add database connection details if needed
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  # Stall Service
+  stall-service:
+    build:
+      context: ./backend/stall-service
+      dockerfile: Dockerfile
+    container_name: bookfair-stall-service
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8085
+      # Add database connection details if needed
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  # Frontend Services
+
+  # Employee Portal
+  employee-portal:
+    build:
+      context: ./frontend/employee-portal
+      dockerfile: Dockerfile
+    container_name: bookfair-employee-portal
+    ports:
+      - "3000:80"
+    environment:
+      # Add API endpoint configuration
+      - REACT_APP_API_URL=http://localhost:8080
+      # Or for Vue: VUE_APP_API_URL=http://localhost:8080
+      # Or for Angular: use environment files
+    networks:
+      - bookfair-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  # User Portal
+  user-portal:
+    build:
+      context: ./frontend/user-portal
+      dockerfile: Dockerfile
+    container_name: bookfair-user-portal
+    ports:
+      - "3001:80"
+    environment:
+      # Add API endpoint configuration
+      - REACT_APP_API_URL=http://localhost:8080
+      # Or for Vue: VUE_APP_API_URL=http://localhost:8080
+      # Or for Angular: use environment files
+    networks:
+      - bookfair-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  # Optional: Database Services (uncomment if needed)
+  
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: bookfair-postgres
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - POSTGRES_DB=bookfair_db
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #     - ./init-scripts:/docker-entrypoint-initdb.d
+  #   networks:
+  #     - bookfair-network
+  #   restart: unless-stopped
+
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: bookfair-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - bookfair-network
+  #   restart: unless-stopped
+
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: bookfair-mysql
+  #   ports:
+  #     - "3306:3306"
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=root
+  #     - MYSQL_DATABASE=bookfair_db
+  #     - MYSQL_USER=bookfair
+  #     - MYSQL_PASSWORD=bookfair
+  #   volumes:
+  #     - mysql-data:/var/lib/mysql
+  #   networks:
+  #     - bookfair-network
+  #   restart: unless-stopped
+
+networks:
+  bookfair-network:
+    driver: bridge
+
+# volumes:
+#   postgres-data:
+#   redis-data:
+#   mysql-data:

@@ -1,0 +1,172 @@
+# Sample application.properties for Docker deployment
+# Copy this configuration to your service's application.properties file
+# and adjust as needed for each service
+
+# ============================================================================
+# APPLICATION CONFIGURATION
+# ============================================================================
+
+# Application name (unique for each service)
+spring.application.name=api-gateway
+
+# Server port (must match the port in Dockerfile and docker-compose.yml)
+server.port=8080
+
+# ============================================================================
+# PROFILES
+# ============================================================================
+
+# Use this to enable Docker-specific configurations
+# spring.profiles.active=docker
+
+# ============================================================================
+# DATABASE CONFIGURATION (if using PostgreSQL)
+# ============================================================================
+
+# When running in Docker, use service name as hostname
+# spring.datasource.url=jdbc:postgresql://postgres:5432/bookfair_db
+# spring.datasource.username=postgres
+# spring.datasource.password=postgres
+# spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate
+# spring.jpa.hibernate.ddl-auto=update
+# spring.jpa.show-sql=true
+# spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+# spring.jpa.properties.hibernate.format_sql=true
+
+# ============================================================================
+# DATABASE CONFIGURATION (if using MySQL)
+# ============================================================================
+
+# When running in Docker, use service name as hostname
+# spring.datasource.url=jdbc:mysql://mysql:3306/bookfair_db?useSSL=false&serverTimezone=UTC
+# spring.datasource.username=bookfair
+# spring.datasource.password=bookfair
+# spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# JPA/Hibernate for MySQL
+# spring.jpa.hibernate.ddl-auto=update
+# spring.jpa.show-sql=true
+# spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+# ============================================================================
+# REDIS CONFIGURATION (if using Redis)
+# ============================================================================
+
+# When running in Docker, use service name as hostname
+# spring.data.redis.host=redis
+# spring.data.redis.port=6379
+# spring.data.redis.password=
+# spring.data.redis.timeout=60000
+
+# ============================================================================
+# SERVICE DISCOVERY (if using Spring Cloud)
+# ============================================================================
+
+# Eureka Client Configuration
+# eureka.client.service-url.defaultZone=http://eureka-server:8761/eureka/
+# eureka.client.register-with-eureka=true
+# eureka.client.fetch-registry=true
+# eureka.instance.prefer-ip-address=true
+
+# ============================================================================
+# API GATEWAY CONFIGURATION (for api-gateway service only)
+# ============================================================================
+
+# Route definitions using service names
+# spring.cloud.gateway.routes[0].id=auth-service
+# spring.cloud.gateway.routes[0].uri=http://auth-service:8081
+# spring.cloud.gateway.routes[0].predicates[0]=Path=/api/auth/**
+
+# spring.cloud.gateway.routes[1].id=genre-service
+# spring.cloud.gateway.routes[1].uri=http://genre-service:8082
+# spring.cloud.gateway.routes[1].predicates[0]=Path=/api/genres/**
+
+# spring.cloud.gateway.routes[2].id=reservation-service
+# spring.cloud.gateway.routes[2].uri=http://reservation-service:8084
+# spring.cloud.gateway.routes[2].predicates[0]=Path=/api/reservations/**
+
+# spring.cloud.gateway.routes[3].id=stall-service
+# spring.cloud.gateway.routes[3].uri=http://stall-service:8085
+# spring.cloud.gateway.routes[3].predicates[0]=Path=/api/stalls/**
+
+# ============================================================================
+# CORS CONFIGURATION
+# ============================================================================
+
+# Allow frontend origins
+# spring.web.cors.allowed-origins=http://localhost:3000,http://localhost:3001
+# spring.web.cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
+# spring.web.cors.allowed-headers=*
+# spring.web.cors.allow-credentials=true
+
+# ============================================================================
+# ACTUATOR CONFIGURATION (for health checks)
+# ============================================================================
+
+management.endpoints.web.exposure.include=health,info,metrics
+management.endpoint.health.show-details=always
+management.health.defaults.enabled=true
+
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+
+logging.level.root=INFO
+logging.level.com.bookfair=DEBUG
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} - %msg%n
+
+# ============================================================================
+# EMAIL CONFIGURATION (for notification-service)
+# ============================================================================
+
+# spring.mail.host=smtp.gmail.com
+# spring.mail.port=587
+# spring.mail.username=your-email@gmail.com
+# spring.mail.password=your-app-password
+# spring.mail.properties.mail.smtp.auth=true
+# spring.mail.properties.mail.smtp.starttls.enable=true
+
+# ============================================================================
+# JWT CONFIGURATION (for auth-service)
+# ============================================================================
+
+# jwt.secret=your-secret-key-here-should-be-at-least-256-bits
+# jwt.expiration=86400000
+# jwt.refresh-expiration=604800000
+
+# ============================================================================
+# FILE UPLOAD CONFIGURATION
+# ============================================================================
+
+# spring.servlet.multipart.enabled=true
+# spring.servlet.multipart.max-file-size=10MB
+# spring.servlet.multipart.max-request-size=10MB
+
+# ============================================================================
+# IMPORTANT NOTES FOR DOCKER
+# ============================================================================
+
+# 1. Use service names (not localhost) for inter-service communication
+#    Example: http://auth-service:8081 instead of http://localhost:8081
+#
+# 2. All services in docker-compose share the same network
+#    They can communicate using service names as hostnames
+#
+# 3. Database hostnames:
+#    - PostgreSQL: postgres:5432
+#    - MySQL: mysql:3306
+#    - Redis: redis:6379
+#
+# 4. Ports exposed to host vs internal:
+#    - Internal: Use the port defined in server.port
+#    - External: Mapped in docker-compose.yml (can be different)
+#
+# 5. Environment variables can override these properties:
+#    Example: SERVER_PORT=8080 overrides server.port
+#
+# 6. Use profiles for environment-specific configurations:
+#    - application.properties (default)
+#    - application-docker.properties (Docker-specific)
+#    - application-prod.properties (Production)
