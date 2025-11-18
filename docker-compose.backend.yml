@@ -1,40 +1,6 @@
 version: '3.8'
 
-# This is a lightweight compose file for running only backend services
-# Useful during frontend development when you want to run frontends locally
-
 services:
-  # API Gateway Service
-  api-gateway:
-    build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
-    container_name: bookfair-api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8080
-    networks:
-      - bookfair-network
-    restart: unless-stopped
-
-  # Auth Service
-  auth-service:
-    build:
-      context: ./backend/auth-service
-      dockerfile: Dockerfile
-    container_name: bookfair-auth-service
-    ports:
-      - "8081:8081"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8081
-    networks:
-      - bookfair-network
-    restart: unless-stopped
-
-  # Genre Service
   genre-service:
     build:
       context: ./backend/genre-service
@@ -45,51 +11,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8082
-    networks:
-      - bookfair-network
-    restart: unless-stopped
-
-  # Notification Service
-  notification-service:
-    build:
-      context: ./backend/notification-service
-      dockerfile: Dockerfile
-    container_name: bookfair-notification-service
-    ports:
-      - "8083:8083"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8083
-    networks:
-      - bookfair-network
-    restart: unless-stopped
-
-  # Reservation Service
-  reservation-service:
-    build:
-      context: ./backend/reservation-service
-      dockerfile: Dockerfile
-    container_name: bookfair-reservation-service
-    ports:
-      - "8084:8084"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8084
-    networks:
-      - bookfair-network
-    restart: unless-stopped
-
-  # Stall Service
-  stall-service:
-    build:
-      context: ./backend/stall-service
-      dockerfile: Dockerfile
-    container_name: bookfair-stall-service
-    ports:
-      - "8085:8085"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8085
     networks:
       - bookfair-network
     restart: unless-stopped
