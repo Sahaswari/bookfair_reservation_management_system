@@ -24,7 +24,17 @@ server.port=8080
 # ============================================================================
 
 # When running in Docker, use service name as hostname
-# spring.datasource.url=jdbc:postgresql://postgres:5432/bookfair_db
+# For auth-service
+# spring.datasource.url=jdbc:postgresql://auth-db:5432/auth_db
+# For stall-service
+# spring.datasource.url=jdbc:postgresql://stall-db:5432/stall_db
+# For reservation-service
+# spring.datasource.url=jdbc:postgresql://reservation-db:5432/reservation_db
+# For genre-service
+# spring.datasource.url=jdbc:postgresql://genre-db:5432/genre_db
+# For notification-service
+# spring.datasource.url=jdbc:postgresql://notification-db:5432/notification_db
+
 # spring.datasource.username=postgres
 # spring.datasource.password=postgres
 # spring.datasource.driver-class-name=org.postgresql.Driver
