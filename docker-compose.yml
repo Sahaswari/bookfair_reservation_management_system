@@ -57,6 +57,9 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8082
       # Add database connection details if needed
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookfair_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
     networks:
       - bookfair-network
     restart: unless-stopped
@@ -151,21 +154,21 @@ services:
 
   # Optional: Database Services (uncomment if needed)
   
-  # postgres:
-  #   image: postgres:16-alpine
-  #   container_name: bookfair-postgres
-  #   ports:
-  #     - "5432:5432"
-  #   environment:
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=postgres
-  #     - POSTGRES_DB=bookfair_db
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #     - ./init-scripts:/docker-entrypoint-initdb.d
-  #   networks:
-  #     - bookfair-network
-  #   restart: unless-stopped
+  postgres:
+     image: postgres:16-alpine
+     container_name: bookfair-postgres
+     ports:
+       - "5432:5432"
+     environment:
+       - POSTGRES_USER=postgres
+       - POSTGRES_PASSWORD=postgres
+       - POSTGRES_DB=bookfair_db
+     volumes:
+       - postgres-data:/var/lib/postgresql/data
+       - ./init-scripts:/docker-entrypoint-initdb.d
+     networks:
+       - bookfair-network
+     restart: unless-stopped
 
   # redis:
   #   image: redis:7-alpine
@@ -198,7 +201,7 @@ networks:
   bookfair-network:
     driver: bridge
 
-# volumes:
-#   postgres-data:
+volumes:
+  postgres-data: 
 #   redis-data:
 #   mysql-data:
