@@ -6,12 +6,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @Component
 @RequiredArgsConstructor
@@ -20,6 +21,10 @@ public class UserEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final KafkaProperties kafkaProperties;
+    private final RetryTemplate kafkaRetryTemplate = RetryTemplate.builder()
+            .maxAttempts(3)
+            .exponentialBackoff(1000L, 2.0, 5000L)
+            .build();
 
     public void publishUserRegistered(User user) {
         publishEvent(user, "USER_CREATED", "registered");
@@ -55,21 +60,27 @@ public class UserEventPublisher {
         String topic = Objects.requireNonNull(kafkaProperties.getUserEventsTopic(), "user-events topic must be configured");
         String key = event.getUserId() != null ? event.getUserId().toString() : event.getEventId().toString();
 
-        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(
-                topic,
-                Objects.requireNonNull(key, "event key must not be null"),
-                event);
+        kafkaRetryTemplate.execute(context -> {
+            try {
+                SendResult<String, Object> result = kafkaTemplate.send(
+                        topic,
+                        Objects.requireNonNull(key, "event key must not be null"),
+                        event).join();
 
-        future.whenComplete((result, throwable) -> {
-            if (throwable != null) {
-                log.error("Failed to publish user {} event for {}", action, user.getEmail(), throwable);
-            } else {
-                log.info("Published user {} event for {} to partition {} with offset {}",
+                log.info("Published user {} event for {} to partition {} with offset {} on attempt {}",
                         action,
                         user.getEmail(),
                         result.getRecordMetadata().partition(),
-                        result.getRecordMetadata().offset());
+                        result.getRecordMetadata().offset(),
+                        context.getRetryCount() + 1);
+                return null;
+            } catch (CompletionException ex) {
+                log.warn("Attempt {} to publish user {} event for {} failed", context.getRetryCount() + 1, action, user.getEmail(), ex.getCause());
+                throw ex;
             }
+        }, context -> {
+            log.error("Failed to publish user {} event for {} after {} attempts", action, user.getEmail(), context.getRetryCount() + 1, context.getLastThrowable());
+            return null;
         });
     }
 }
