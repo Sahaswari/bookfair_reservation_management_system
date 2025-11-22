@@ -118,6 +118,7 @@ docker-compose.override.yml
 # Database
 # ============================================================================
 *.sql
+!*/src/main/resources/db/migration/*.sql
 *.db
 *.sqlite
 data/
