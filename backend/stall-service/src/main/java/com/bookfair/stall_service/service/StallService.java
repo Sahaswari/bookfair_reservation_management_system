@@ -84,6 +84,42 @@ public class StallService {
     }
 
     /**
+     * Update an existing stall
+     */
+    public StallDTO updateStall(UUID id, CreateStallRequest request) {
+        log.info("Updating stall with ID: {}", id);
+
+        // Find existing stall
+        Stall stall = stallRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Stall not found with ID: " + id));
+
+        // Check if stall code is being changed and if it already exists
+        if (!stall.getStallCode().equals(request.getStallCode()) &&
+            stallRepository.existsByStallCode(request.getStallCode())) {
+            throw new RuntimeException("Stall with code '" + request.getStallCode() + "' already exists");
+        }
+
+        // Verify event exists (if event is being changed)
+        if (!stall.getEvent().getId().equals(request.getEventId())) {
+            Event event = eventRepository.findById(request.getEventId())
+                    .orElseThrow(() -> new RuntimeException("Event not found with ID: " + request.getEventId()));
+            stall.setEvent(event);
+        }
+
+        // Update stall fields
+        stall.setStallCode(request.getStallCode());
+        stall.setSizeCategory(request.getSizeCategory());
+        stall.setPrice(request.getPrice());
+        stall.setLocationX(request.getLocationX());
+        stall.setLocationY(request.getLocationY());
+
+        Stall updatedStall = stallRepository.save(stall);
+        log.info("Stall updated successfully: {}", updatedStall.getStallCode());
+
+        return convertToDTO(updatedStall);
+    }
+
+    /**
      * Get stalls by event ID
      */
     @Transactional(readOnly = true)
