@@ -1,0 +1,76 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      server:
+        webflux:
+          default-filters:
+            - RemoveRequestHeader=connection
+            - RemoveRequestHeader=keep-alive
+            - RemoveRequestHeader=transfer-encoding
+            - RemoveRequestHeader=te
+            - RemoveRequestHeader=trailer
+            - RemoveRequestHeader=proxy-authorization
+            - RemoveRequestHeader=proxy-authenticate
+            - RemoveResponseHeader=connection
+            - RemoveResponseHeader=keep-alive
+            - RemoveResponseHeader=transfer-encoding
+            - RemoveResponseHeader=te
+            - RemoveResponseHeader=trailer
+            - RemoveResponseHeader=proxy-authorization
+            - RemoveResponseHeader=proxy-authenticate
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowed-origins: ${GATEWAY_ALLOWED_ORIGINS:*}
+                allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+                allowed-headers: '*'
+                allow-credentials: true
+          routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/auth/**,/api/users/**
+            - id: stall-service
+              uri: ${STALL_SERVICE_URI:http://localhost:8085}
+              predicates:
+                - Path=/api/stalls/**
+            - id: reservation-service
+              uri: ${RESERVATION_SERVICE_URI:http://localhost:8084}
+              predicates:
+                - Path=/api/reservations/**
+            - id: genre-service
+              uri: ${GENRE_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/genres/**
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/notifications/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: when_authorized
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:ChangeMePlease_ToASuperStrongJwtSecret_2025}
+  security:
+    public-paths:
+      - /api/auth/register
+      - /api/auth/login
+      - /api/auth/refresh-token
+      - /actuator/health
