@@ -1,9 +1,50 @@
 services:
-  postgres:
-    image: 'postgres:latest'
-    environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+  reservation-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bookfair-reservation-service
     ports:
-      - '5432'
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8086
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-postgres:5432/reservation_service_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    networks:
+      - bookfair-network
+    depends_on:
+      reservation-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL Database for Reservation Service
+  reservation-postgres:
+    image: postgres:16-alpine
+    container_name: bookfair-reservation-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=reservation_service_db
+      - POSTGRES_INITDB_ARGS=-c password_encryption=scram-sha-256
+    volumes:
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - reservation-postgres-data:/var/lib/postgresql/data
+    networks:
+      - bookfair-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  bookfair-network:
+    external: true
+
+volumes:
+  reservation-postgres-data:

@@ -97,7 +97,7 @@ services:
       dockerfile: Dockerfile
     container_name: bookfair-reservation-service
     ports:
-      - "8084:8084"
+      - "8086:8086"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8084
