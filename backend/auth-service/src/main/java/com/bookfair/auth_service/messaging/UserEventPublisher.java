@@ -22,13 +22,26 @@ public class UserEventPublisher {
     private final KafkaProperties kafkaProperties;
 
     public void publishUserRegistered(User user) {
+        publishEvent(user, "USER_CREATED", "registered");
+    }
+
+    public void publishUserUpdated(User user) {
+        publishEvent(user, "USER_UPDATED", "updated");
+    }
+
+    public void publishUserDeleted(User user) {
+        publishEvent(user, "USER_DELETED", "deleted");
+    }
+
+    private void publishEvent(User user, String eventType, String action) {
         if (!kafkaProperties.isEnabled()) {
-            log.debug("Kafka disabled, skipping user registered event");
+            log.debug("Kafka disabled, skipping user {} event", action);
             return;
         }
+
         UserLifecycleEvent event = UserLifecycleEvent.builder()
                 .eventId(UUID.randomUUID())
-                .eventType("USER_CREATED")
+                .eventType(eventType)
                 .occurredAt(Instant.now())
                 .userId(user.getId())
                 .firstName(user.getFirstName())
@@ -42,15 +55,17 @@ public class UserEventPublisher {
         String topic = Objects.requireNonNull(kafkaProperties.getUserEventsTopic(), "user-events topic must be configured");
         String key = event.getUserId() != null ? event.getUserId().toString() : event.getEventId().toString();
 
-        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(topic,
-            Objects.requireNonNull(key, "event key must not be null"),
-            event);
+        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(
+                topic,
+                Objects.requireNonNull(key, "event key must not be null"),
+                event);
 
         future.whenComplete((result, throwable) -> {
             if (throwable != null) {
-                log.error("Failed to publish user registered event for {}", user.getEmail(), throwable);
+                log.error("Failed to publish user {} event for {}", action, user.getEmail(), throwable);
             } else {
-                log.info("Published user registered event for {} to partition {} with offset {}",
+                log.info("Published user {} event for {} to partition {} with offset {}",
+                        action,
                         user.getEmail(),
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset());
