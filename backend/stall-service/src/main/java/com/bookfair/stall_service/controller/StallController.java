@@ -161,6 +161,24 @@ public class StallController {
     }
 
     /**
+     * Update stall
+     * PUT /api/stalls/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<StallDTO>> updateStall(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateStallRequest request) {
+        try {
+            StallDTO stall = stallService.updateStall(id, request);
+            return ResponseEntity.ok(ApiResponse.success("Stall updated successfully", stall));
+        } catch (Exception e) {
+            log.error("Error updating stall", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * Get stalls by vendor
      * GET /api/stalls/vendor/{vendorId}
      */

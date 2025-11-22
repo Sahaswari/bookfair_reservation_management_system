@@ -109,6 +109,24 @@ public class EventController {
     }
 
     /**
+     * Update event
+     * PUT /api/events/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<EventDTO>> updateEvent(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateEventRequest request) {
+        try {
+            EventDTO event = eventService.updateEvent(id, request);
+            return ResponseEntity.ok(ApiResponse.success("Event updated successfully", event));
+        } catch (Exception e) {
+            log.error("Error updating event", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * Update event status
      * PATCH /api/events/{id}/status
      */
