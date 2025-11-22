@@ -43,6 +43,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
+      - APP_JWT_SECRET=${APP_JWT_SECRET:-ChangeMePlease_ToASuperStrongJwtSecret_2025}
     networks:
       - bookfair-network
     depends_on:
