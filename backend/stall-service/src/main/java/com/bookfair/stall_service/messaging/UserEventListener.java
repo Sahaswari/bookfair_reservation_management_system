@@ -53,6 +53,7 @@ public class UserEventListener {
         dto.setFirstName(event.getFirstName());
         dto.setLastName(event.getLastName());
         dto.setEmail(event.getEmail());
+        dto.setMobileNo(event.getMobileNo());
         dto.setRole(event.getRole());
         dto.setStatus(event.getStatus());
         userSnapshotService.createOrUpdateUserSnapshot(dto);

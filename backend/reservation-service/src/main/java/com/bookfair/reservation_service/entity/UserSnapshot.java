@@ -33,6 +33,9 @@ public class UserSnapshot {
     @Column(length = 255)
     private String email;
 
+    @Column(name = "mobile_no", length = 255)
+    private String mobileNo;
+
     @Column(length = 50)
     private String role;
 

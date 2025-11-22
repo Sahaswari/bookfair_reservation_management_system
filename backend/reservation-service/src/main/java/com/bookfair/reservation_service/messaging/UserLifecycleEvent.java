@@ -23,6 +23,7 @@ public class UserLifecycleEvent {
     private String lastName;
     private String email;
     private String companyName;
+    private String mobileNo;
     private String role;
     private String status;
 }

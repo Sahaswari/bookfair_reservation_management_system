@@ -9,6 +9,7 @@ public class UserSnapshotDTO {
     private String firstName;
     private String lastName;
     private String email;
+    private String mobileNo;
     private String role;
     private String status;
     private LocalDateTime updatedAt;
@@ -18,12 +19,13 @@ public class UserSnapshotDTO {
     }
 
     public UserSnapshotDTO(UUID id, UUID userId, String firstName, String lastName, String email, 
-                          String role, String status, LocalDateTime updatedAt) {
+                          String mobileNo, String role, String status, LocalDateTime updatedAt) {
         this.id = id;
         this.userId = userId;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+        this.mobileNo = mobileNo;
         this.role = role;
         this.status = status;
         this.updatedAt = updatedAt;
@@ -68,6 +70,14 @@ public class UserSnapshotDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getMobileNo() {
+        return mobileNo;
+    }
+
+    public void setMobileNo(String mobileNo) {
+        this.mobileNo = mobileNo;
     }
 
     public String getRole() {

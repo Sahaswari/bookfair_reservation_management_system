@@ -53,6 +53,7 @@ public class UserEventPublisher {
                 .lastName(user.getLastName())
                 .companyName(user.getCompanyName())
                 .email(user.getEmail())
+                .mobileNo(user.getMobileNo())
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
                 .build();

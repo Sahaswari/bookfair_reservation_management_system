@@ -49,6 +49,7 @@ public class UserSnapshotSyncService {
         snapshot.setFirstName(event.getFirstName());
         snapshot.setLastName(event.getLastName());
         snapshot.setEmail(event.getEmail());
+        snapshot.setMobileNo(event.getMobileNo());
         snapshot.setRole(event.getRole());
         snapshot.setStatus(event.getStatus());
         userSnapshotRepository.save(snapshot);
