@@ -5,6 +5,7 @@ import com.bookfair.auth_service.dto.LoginRequest;
 import com.bookfair.auth_service.dto.RefreshTokenRequest;
 import com.bookfair.auth_service.dto.RegistrationRequest;
 import com.bookfair.auth_service.dto.TokenResponse;
+import com.bookfair.auth_service.dto.UpdateUserRequest;
 import com.bookfair.auth_service.dto.UserResponse;
 import com.bookfair.auth_service.entity.User;
 import com.bookfair.auth_service.entity.UserRole;
@@ -110,6 +111,39 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponse(loadUserById(userId));
     }
 
+    @Override
+    @Transactional
+    public UserResponse updateUser(UUID userId, UpdateUserRequest request) {
+        User user = loadUserById(userId);
+        String newMobile = request.getMobileNo();
+        if (newMobile != null && !newMobile.equals(user.getMobileNo()) &&
+                userRepository.existsByMobileNoAndIdNot(newMobile, userId)) {
+            throw new DuplicateResourceException("Mobile number already registered");
+        }
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setCompanyName(request.getCompanyName());
+        user.setMobileNo(newMobile);
+
+        User savedUser = userRepository.save(user);
+        publishUserUpdated(savedUser);
+        return userMapper.toResponse(savedUser);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(UUID userId) {
+        User user = loadUserById(userId);
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            return;
+        }
+        user.setStatus(UserStatus.INACTIVE);
+        userRepository.save(user);
+        deactivateActiveSessions(userId);
+        publishUserDeleted(user);
+    }
+
     public User loadUserById(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new InvalidCredentialsException("User not found"));
@@ -166,10 +200,22 @@ public class UserServiceImpl implements UserService {
     }
 
     private void publishUserRegistered(User user) {
+        publishUserEvent(() -> userEventPublisher.publishUserRegistered(user), user.getEmail(), "registered");
+    }
+
+    private void publishUserUpdated(User user) {
+        publishUserEvent(() -> userEventPublisher.publishUserUpdated(user), user.getEmail(), "updated");
+    }
+
+    private void publishUserDeleted(User user) {
+        publishUserEvent(() -> userEventPublisher.publishUserDeleted(user), user.getEmail(), "deleted");
+    }
+
+    private void publishUserEvent(Runnable publisher, String email, String action) {
         try {
-            userEventPublisher.publishUserRegistered(user);
+            publisher.run();
         } catch (Exception ex) {
-            log.warn("Failed to publish user registered event for {}: {}", user.getEmail(), ex.getMessage());
+            log.warn("Failed to publish user {} event for {}: {}", action, email, ex.getMessage());
         }
     }
 }

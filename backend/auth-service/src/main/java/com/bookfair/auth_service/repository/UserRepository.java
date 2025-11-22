@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByMobileNo(String mobileNo);
 
+    boolean existsByMobileNoAndIdNot(String mobileNo, UUID id);
+
     long countByIdAndRole(UUID id, UserRole role);
 }
 
