@@ -47,7 +47,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Genre Service
@@ -67,7 +68,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - genre-db
+      genre-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Notification Service
@@ -87,7 +89,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - notification-db
+      notification-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Reservation Service
@@ -107,7 +110,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - reservation-db
+      reservation-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Stall Service
@@ -127,7 +131,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - stall-db
+      stall-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # PostgreSQL Database for Stall Service
@@ -144,6 +149,12 @@ services:
       - stall-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   auth-db:
@@ -159,6 +170,12 @@ services:
       - auth-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   reservation-db:
@@ -174,6 +191,12 @@ services:
       - reservation-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   genre-db:
@@ -189,6 +212,12 @@ services:
       - genre-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   notification-db:
@@ -204,6 +233,12 @@ services:
       - notification-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   # Frontend Services
