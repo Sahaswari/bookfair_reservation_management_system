@@ -34,7 +34,7 @@ public class UserSyncKafkaProperties {
     @Setter
     public static class Retry {
         @Min(1)
-        private int maxAttempts = 5;
+        private int maxAttempts = 3;
         @Min(100)
         private long initialIntervalMs = 1_000L;
         @Min(100)

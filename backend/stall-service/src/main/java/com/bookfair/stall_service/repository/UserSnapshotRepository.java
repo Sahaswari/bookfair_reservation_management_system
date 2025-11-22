@@ -27,4 +27,11 @@ public interface UserSnapshotRepository extends JpaRepository<UserSnapshot, UUID
      * @return true if exists, false otherwise
      */
     boolean existsByUserId(UUID userId);
+
+    /**
+     * Delete the snapshot associated with the provided user ID.
+     *
+     * @param userId the user identifier replicated from the Auth Service
+     */
+    void deleteByUserId(UUID userId);
 }

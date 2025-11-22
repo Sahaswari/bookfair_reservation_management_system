@@ -65,6 +65,13 @@ public class UserSnapshotService {
         userSnapshotRepository.deleteById(id);
     }
 
+    public void deleteUserSnapshotByUserId(UUID userId) {
+        if (!userSnapshotRepository.existsByUserId(userId)) {
+            return;
+        }
+        userSnapshotRepository.deleteByUserId(userId);
+    }
+
     private UserSnapshotDTO convertToDTO(UserSnapshot userSnapshot) {
         UserSnapshotDTO dto = new UserSnapshotDTO();
         dto.setId(userSnapshot.getId());

@@ -41,6 +41,13 @@ public class UserEventListener {
         }
 
         log.info("Consuming user lifecycle event {} from {}[{}:{}]", event.getEventType(), topic, partition, offset);
+        String eventType = event.getEventType() != null ? event.getEventType().toUpperCase() : "";
+        if ("USER_DELETED".equals(eventType)) {
+            userSnapshotService.deleteUserSnapshotByUserId(event.getUserId());
+            log.info("Deleted user snapshot for {} after USER_DELETED event", event.getUserId());
+            return;
+        }
+
         UserSnapshotDTO dto = new UserSnapshotDTO();
         dto.setUserId(event.getUserId());
         dto.setFirstName(event.getFirstName());
