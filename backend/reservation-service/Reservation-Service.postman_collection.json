@@ -1,0 +1,296 @@
+{
+  "info": {
+    "_postman_id": "reservation-service-api",
+    "name": "Reservation Service API",
+    "description": "Complete API collection for Reservation Service - Book Fair Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8086/api/reservations",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "550e8400-e29b-41d4-a716-446655440001",
+      "type": "string"
+    },
+    {
+      "key": "stallId",
+      "value": "550e8400-e29b-41d4-a716-446655440002",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "550e8400-e29b-41d4-a716-446655440003",
+      "type": "string"
+    },
+    {
+      "key": "reservationId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get All Reservations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}",
+          "host": ["{{baseUrl}}"]
+        },
+        "description": "Retrieves all reservation records from the database"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Create Reservation (Book Stall)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.collectionVariables.set('reservationId', jsonData.data.id);",
+              "    pm.environment.set('reservationId', jsonData.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"stallId\": \"{{stallId}}\",\n  \"eventId\": \"{{eventId}}\",\n  \"reservationDate\": \"2025-12-01\",\n  \"userFirstName\": \"John\",\n  \"userLastName\": \"Doe\",\n  \"userEmail\": \"john.doe@example.com\",\n  \"userRole\": \"VENDOR\",\n  \"userStatus\": \"ACTIVE\",\n  \"stallCode\": \"S001\",\n  \"sizeCategory\": \"MEDIUM\",\n  \"price\": \"1500.00\",\n  \"locationX\": 10.5,\n  \"locationY\": 20.3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}",
+          "host": ["{{baseUrl}}"]
+        },
+        "description": "Books a stall and creates a reservation with PENDING status"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Update Status to CONFIRMED",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{reservationId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{reservationId}}", "status"]
+        },
+        "description": "Updates reservation status from PENDING to CONFIRMED (Admin privilege)"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Update Status to CANCELLED",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"CANCELLED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{reservationId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{reservationId}}", "status"]
+        },
+        "description": "Updates reservation status from PENDING to CANCELLED (Admin privilege)"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Get Reservation by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{reservationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{reservationId}}"]
+        },
+        "description": "Retrieves a specific reservation by its ID"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Get Reservations by Status - PENDING",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/status/PENDING",
+          "host": ["{{baseUrl}}"],
+          "path": ["status", "PENDING"]
+        },
+        "description": "Retrieves all reservations with PENDING status"
+      },
+      "response": []
+    },
+    {
+      "name": "7. Get Reservations by Status - CONFIRMED",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/status/CONFIRMED",
+          "host": ["{{baseUrl}}"],
+          "path": ["status", "CONFIRMED"]
+        },
+        "description": "Retrieves all reservations with CONFIRMED status"
+      },
+      "response": []
+    },
+    {
+      "name": "8. Get Reservations by Status - CANCELLED",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/status/CANCELLED",
+          "host": ["{{baseUrl}}"],
+          "path": ["status", "CANCELLED"]
+        },
+        "description": "Retrieves all reservations with CANCELLED status"
+      },
+      "response": []
+    },
+    {
+      "name": "9. Get Reservations by User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user/{{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["user", "{{userId}}"]
+        },
+        "description": "Retrieves all reservations for a specific user"
+      },
+      "response": []
+    },
+    {
+      "name": "10. Get Reservations by Event",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/event/{{eventId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["event", "{{eventId}}"]
+        },
+        "description": "Retrieves all reservations for a specific event"
+      },
+      "response": []
+    },
+    {
+      "name": "11. Create Second Reservation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440004\",\n  \"stallId\": \"550e8400-e29b-41d4-a716-446655440005\",\n  \"eventId\": \"{{eventId}}\",\n  \"reservationDate\": \"2025-12-02\",\n  \"userFirstName\": \"Jane\",\n  \"userLastName\": \"Smith\",\n  \"userEmail\": \"jane.smith@example.com\",\n  \"userRole\": \"VENDOR\",\n  \"userStatus\": \"ACTIVE\",\n  \"stallCode\": \"S002\",\n  \"sizeCategory\": \"LARGE\",\n  \"price\": \"2500.00\",\n  \"locationX\": 15.5,\n  \"locationY\": 25.3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}",
+          "host": ["{{baseUrl}}"]
+        },
+        "description": "Creates a second reservation for testing multiple records"
+      },
+      "response": []
+    },
+    {
+      "name": "12. Test Duplicate Reservation (Should Fail)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440006\",\n  \"stallId\": \"{{stallId}}\",\n  \"eventId\": \"{{eventId}}\",\n  \"reservationDate\": \"2025-12-01\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}",
+          "host": ["{{baseUrl}}"]
+        },
+        "description": "Attempts to book an already reserved stall - should return 400 Bad Request"
+      },
+      "response": []
+    }
+  ]
+}

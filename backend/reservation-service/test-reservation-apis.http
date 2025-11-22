@@ -1,0 +1,124 @@
+### Reservation Service API Tests
+### Base URL
+@baseUrl = http://localhost:8086/api/reservations
+
+### 1. Get All Reservations
+GET {{baseUrl}}
+Accept: application/json
+
+###
+
+### 2. Create a New Reservation (Book Stall) - PENDING status
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440001",
+  "stallId": "550e8400-e29b-41d4-a716-446655440002",
+  "eventId": "550e8400-e29b-41d4-a716-446655440003",
+  "reservationDate": "2025-12-01",
+  "userFirstName": "John",
+  "userLastName": "Doe",
+  "userEmail": "john.doe@example.com",
+  "userRole": "VENDOR",
+  "userStatus": "ACTIVE",
+  "stallCode": "S001",
+  "sizeCategory": "MEDIUM",
+  "price": "1500.00",
+  "locationX": 10.5,
+  "locationY": 20.3
+}
+
+###
+
+### 3. Update Reservation Status to CONFIRMED (Admin Privilege)
+PUT {{baseUrl}}/550e8400-e29b-41d4-a716-446655440000/status
+Content-Type: application/json
+
+{
+  "status": "CONFIRMED"
+}
+
+###
+
+### 4. Update Reservation Status to CANCELLED (Admin Privilege)
+PUT {{baseUrl}}/550e8400-e29b-41d4-a716-446655440000/status
+Content-Type: application/json
+
+{
+  "status": "CANCELLED"
+}
+
+###
+
+### 5. Get Reservation by ID
+GET {{baseUrl}}/550e8400-e29b-41d4-a716-446655440000
+Accept: application/json
+
+###
+
+### 6. Get Reservations by Status (PENDING)
+GET {{baseUrl}}/status/PENDING
+Accept: application/json
+
+###
+
+### 7. Get Reservations by Status (CONFIRMED)
+GET {{baseUrl}}/status/CONFIRMED
+Accept: application/json
+
+###
+
+### 8. Get Reservations by Status (CANCELLED)
+GET {{baseUrl}}/status/CANCELLED
+Accept: application/json
+
+###
+
+### 9. Get Reservations by User
+GET {{baseUrl}}/user/550e8400-e29b-41d4-a716-446655440001
+Accept: application/json
+
+###
+
+### 10. Get Reservations by Event
+GET {{baseUrl}}/event/550e8400-e29b-41d4-a716-446655440003
+Accept: application/json
+
+###
+
+### Test Case: Create Multiple Reservations
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440004",
+  "stallId": "550e8400-e29b-41d4-a716-446655440005",
+  "eventId": "550e8400-e29b-41d4-a716-446655440003",
+  "reservationDate": "2025-12-02",
+  "userFirstName": "Jane",
+  "userLastName": "Smith",
+  "userEmail": "jane.smith@example.com",
+  "userRole": "VENDOR",
+  "userStatus": "ACTIVE",
+  "stallCode": "S002",
+  "sizeCategory": "LARGE",
+  "price": "2500.00",
+  "locationX": 15.5,
+  "locationY": 25.3
+}
+
+###
+
+### Test Case: Try to Book Already Reserved Stall (Should Fail)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440006",
+  "stallId": "550e8400-e29b-41d4-a716-446655440002",
+  "eventId": "550e8400-e29b-41d4-a716-446655440003",
+  "reservationDate": "2025-12-01"
+}
+
+###
