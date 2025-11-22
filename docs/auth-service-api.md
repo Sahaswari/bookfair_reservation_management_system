@@ -34,6 +34,8 @@ This document describes the authentication endpoints exposed by the **Auth Servi
 | `/api/auth/login` | POST | No | Exchanges credentials for a token pair. |
 | `/api/auth/refresh-token` | POST | No | Exchanges a valid refresh token for a new access/refresh pair and rotates the session. |
 | `/api/auth/logout` | POST | Yes (access token) | Invalidates the active session for the supplied access token. |
+| `/api/auth/forgot-password` | POST | No | Starts the password reset flow and emails a one-time link. |
+| `/api/auth/reset-password` | POST | No | Confirms the reset token and sets a new password. |
 | `/api/users/me` | GET | Yes (access token) | Returns the authenticated user profile. |
 | `/api/users/me` | PUT | Yes (access token) | Updates mutable profile fields (name, company, mobile). |
 | `/api/users/me` | DELETE | Yes (access token) | Soft-deletes the current user (status → INACTIVE, sessions revoked). |
@@ -153,7 +155,60 @@ Authorization: Bearer <access-token>
 
 ---
 
-## 5. Current User Profile — `GET /api/users/me`
+## 5. Forgot Password — `POST /api/auth/forgot-password`
+Initiates the password reset sequence. The API always returns `200 OK` to avoid leaking whether the email exists.
+
+### Request Body
+```json
+{
+  "email": "alice@example.com"
+}
+```
+
+### Response (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "If the email exists, reset instructions have been sent",
+  "data": null,
+  "timestamp": "2025-11-22T09:10:00Z"
+}
+```
+
+### Notes
+- Reset tokens expire after the configured window (default **30 minutes**).
+- Requests are rate-limited at the edge (API Gateway) in production; implement caller-side throttling during testing.
+
+---
+
+## 6. Reset Password — `POST /api/auth/reset-password`
+Consumes the reset token and sets a new password. All existing sessions for the user are revoked immediately.
+
+### Request Body
+```json
+{
+  "token": "<token-from-email>",
+  "newPassword": "P@ssw0rd123"
+}
+```
+
+### Response (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Password reset successfully",
+  "data": null,
+  "timestamp": "2025-11-22T09:15:00Z"
+}
+```
+
+### Failure Cases
+- `400 Bad Request` when the token is invalid, already used, or expired.
+- `423 Locked` scenarios are not used; the same message is reused for all invalid tokens to avoid brute-force hints.
+
+---
+
+## 7. Current User Profile — `GET /api/users/me`
 Returns the authenticated user’s profile information. Requires a valid access token.
 
 ### Headers
@@ -187,7 +242,7 @@ Authorization: Bearer <access-token>
 
 ---
 
-## 6. Update Current User — `PUT /api/users/me`
+## 8. Update Current User — `PUT /api/users/me`
 Updates the authenticated user’s profile. Only `firstName`, `lastName`, `companyName`, and `mobileNo` are editable; email and role remain immutable.
 
 ### Headers
@@ -238,7 +293,7 @@ Validation notes:
 
 ---
 
-## 7. Delete Current User — `DELETE /api/users/me`
+## 9. Delete Current User — `DELETE /api/users/me`
 Soft deletes the authenticated account by switching `status` to `INACTIVE`, revoking every active session, and broadcasting a `USER_DELETED` Kafka event. The record remains in the database for auditing.
 
 ### Headers
