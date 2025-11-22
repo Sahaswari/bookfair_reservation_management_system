@@ -25,7 +25,6 @@ public class CreateEventRequest {
     private String name;
     
     @NotNull(message = "Start date is required")
-    @Future(message = "Start date must be in the future")
     private LocalDate startDate;
     
     @NotNull(message = "End date is required")

@@ -12,6 +12,13 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8080
+      - AUTH_SERVICE_URI=http://auth-service:8081
+      - STALL_SERVICE_URI=http://stall-service:8085
+      - RESERVATION_SERVICE_URI=http://reservation-service:8084
+      - GENRE_SERVICE_URI=http://genre-service:8082
+      - NOTIFICATION_SERVICE_URI=http://notification-service:8083
+      - GATEWAY_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+      - APP_JWT_SECRET=${APP_JWT_SECRET:-ChangeMePlease_ToASuperStrongJwtSecret_2025}
     networks:
       - bookfair-network
     healthcheck:
@@ -36,10 +43,12 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
+      - APP_JWT_SECRET=${APP_JWT_SECRET:-ChangeMePlease_ToASuperStrongJwtSecret_2025}
     networks:
       - bookfair-network
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Genre Service
@@ -59,7 +68,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - genre-db
+      genre-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Notification Service
@@ -79,7 +89,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - notification-db
+      notification-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Reservation Service
@@ -99,7 +110,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - reservation-db
+      reservation-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Stall Service
@@ -119,7 +131,8 @@ services:
     networks:
       - bookfair-network
     depends_on:
-      - stall-db
+      stall-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # PostgreSQL Database for Stall Service
@@ -136,6 +149,12 @@ services:
       - stall-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   auth-db:
@@ -151,6 +170,12 @@ services:
       - auth-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   reservation-db:
@@ -166,6 +191,12 @@ services:
       - reservation-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   genre-db:
@@ -181,6 +212,12 @@ services:
       - genre-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   notification-db:
@@ -196,6 +233,12 @@ services:
       - notification-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
   # Frontend Services
