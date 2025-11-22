@@ -111,9 +111,14 @@ public class EventService {
                 .orElseThrow(() -> new RuntimeException("Event not found with ID: " + eventId));
         
         // Check if event name is being changed and if new name already exists
-        if (!event.getName().equals(request.getName()) && 
-            eventRepository.existsByName(request.getName())) {
-            throw new RuntimeException("Event with name '" + request.getName() + "' already exists");
+        if (!event.getName().equals(request.getName())) {
+            // Check if another event with this name exists
+            eventRepository.findByName(request.getName())
+                    .ifPresent(existingEvent -> {
+                        if (!existingEvent.getId().equals(eventId)) {
+                            throw new RuntimeException("Event with name '" + request.getName() + "' already exists");
+                        }
+                    });
         }
 
         // Validate dates

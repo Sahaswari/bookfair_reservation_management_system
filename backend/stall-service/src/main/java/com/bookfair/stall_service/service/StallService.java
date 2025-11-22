@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -93,10 +94,22 @@ public class StallService {
         Stall stall = stallRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Stall not found with ID: " + id));
 
-        // Check if stall code is being changed and if it already exists
-        if (!stall.getStallCode().equals(request.getStallCode()) &&
-            stallRepository.existsByStallCode(request.getStallCode())) {
-            throw new RuntimeException("Stall with code '" + request.getStallCode() + "' already exists");
+        // Check if stall code is being changed to one that already exists
+        log.info("Updating stall ID: {}, Current code: '{}', New code: '{}'", 
+                 id, stall.getStallCode(), request.getStallCode());
+        
+        // Only validate if the stall code is actually changing
+        if (!stall.getStallCode().equals(request.getStallCode())) {
+            log.info("Stall code IS changing from '{}' to '{}', checking for duplicates...", 
+                     stall.getStallCode(), request.getStallCode());
+            // Check if the new code already exists for a DIFFERENT stall
+            if (stallRepository.existsByStallCode(request.getStallCode())) {
+                log.error("Cannot change code to '{}' - already exists", request.getStallCode());
+                throw new RuntimeException("Stall with code '" + request.getStallCode() + "' already exists");
+            }
+            log.info("Code change validated - no duplicates found");
+        } else {
+            log.info("Stall code NOT changing (still '{}'), skipping duplicate check", stall.getStallCode());
         }
 
         // Verify event exists (if event is being changed)
