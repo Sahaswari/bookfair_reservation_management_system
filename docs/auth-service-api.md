@@ -35,6 +35,8 @@ This document describes the authentication endpoints exposed by the **Auth Servi
 | `/api/auth/refresh-token` | POST | No | Exchanges a valid refresh token for a new access/refresh pair and rotates the session. |
 | `/api/auth/logout` | POST | Yes (access token) | Invalidates the active session for the supplied access token. |
 | `/api/users/me` | GET | Yes (access token) | Returns the authenticated user profile. |
+| `/api/users/me` | PUT | Yes (access token) | Updates mutable profile fields (name, company, mobile). |
+| `/api/users/me` | DELETE | Yes (access token) | Soft-deletes the current user (status → INACTIVE, sessions revoked). |
 
 ---
 
@@ -182,6 +184,85 @@ Authorization: Bearer <access-token>
 
 ### Failure Cases
 - `401 Unauthorized` when the access token is missing/expired/invalid.
+
+---
+
+## 6. Update Current User — `PUT /api/users/me`
+Updates the authenticated user’s profile. Only `firstName`, `lastName`, `companyName`, and `mobileNo` are editable; email and role remain immutable.
+
+### Headers
+```
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+### Request Body
+```json
+{
+  "firstName": "Alice",
+  "lastName": "Nguyen",
+  "companyName": "Book Planet",
+  "mobileNo": "+1-555-555-5555"
+}
+```
+
+Validation notes:
+- `firstName` required, max 100 chars.
+- `mobileNo` follows the same format as registration and must remain unique across all users.
+- Missing optional fields are treated as empty strings; send the existing values if no change is desired.
+
+### Response (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "User profile updated successfully",
+  "data": {
+    "id": "a8b3...",
+    "firstName": "Alice",
+    "lastName": "Nguyen",
+    "companyName": "Book Planet",
+    "email": "alice@example.com",
+    "mobileNo": "+1-555-555-5555",
+    "role": "VENDOR",
+    "status": "ACTIVE",
+    "createdAt": "2025-11-22T08:10:11Z",
+    "updatedAt": "2025-11-22T09:00:00Z"
+  },
+  "timestamp": "2025-11-22T09:00:00Z"
+}
+```
+
+### Failure Cases
+- `400 Bad Request` for validation errors (e.g., duplicate mobile number, invalid format).
+- `401 Unauthorized` when the access token is missing/invalid.
+
+---
+
+## 7. Delete Current User — `DELETE /api/users/me`
+Soft deletes the authenticated account by switching `status` to `INACTIVE`, revoking every active session, and broadcasting a `USER_DELETED` Kafka event. The record remains in the database for auditing.
+
+### Headers
+```
+Authorization: Bearer <access-token>
+```
+
+### Response (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "User account deleted successfully",
+  "data": null,
+  "timestamp": "2025-11-22T09:05:00Z"
+}
+```
+
+### Notes
+- The endpoint is idempotent; calling it multiple times keeps the user INACTIVE and still returns success.
+- Downstream services (e.g., stall-service) receive the delete event to archive the user snapshot.
+
+### Failure Cases
+- `401 Unauthorized` if the access token is missing or expired.
+- `404 Not Found` if the user record cannot be located (e.g., token references a deleted user).
 
 ---
 
