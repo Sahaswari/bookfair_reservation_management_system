@@ -1,17 +1,16 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BookOpen, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const isLoggedIn = ["/dashboard", "/reserve", "/my-reservations", "/success"].some((path) =>
-    location.pathname.startsWith(path),
-  );
+  const { user, logout } = useAuth();
+  const isLoggedIn = !!user;
 
-  const handleLogout = () => {
-    localStorage.removeItem("publicUser");
-    localStorage.removeItem("publicEmail");
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 

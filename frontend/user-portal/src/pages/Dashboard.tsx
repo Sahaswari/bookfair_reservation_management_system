@@ -4,17 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, CheckCircle2, MapPin, Tag } from "lucide-react";
 import Header from "@/components/Header";
-import { usePublicAuth } from "@/hooks/usePublicAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
-  const { isAuthenticated } = usePublicAuth();
+  const { user } = useAuth();
   const reservationCount = 0;
   const maxReservations = 3;
   const progressPercent = (reservationCount / maxReservations) * 100;
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-background">

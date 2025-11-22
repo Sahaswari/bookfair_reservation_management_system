@@ -59,8 +59,8 @@ public class ReservationKafkaConfig {
      * Kafka listener container factory for reservation events
      * Configured with retry policy, error handling, and dead letter topic
      */
-    @Bean(name = "kafkaListenerContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, ReservationLifecycleEvent> kafkaListenerContainerFactory(
+    @Bean(name = "reservationKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, ReservationLifecycleEvent> reservationKafkaListenerContainerFactory(
             ConsumerFactory<String, ReservationLifecycleEvent> reservationEventConsumerFactory,
             KafkaTemplate<String, Object> kafkaTemplate) {
         
