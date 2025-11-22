@@ -102,6 +102,42 @@ public class EventService {
     }
 
     /**
+     * Update event
+     */
+    public EventDTO updateEvent(UUID eventId, CreateEventRequest request) {
+        log.info("Updating event with ID: {}", eventId);
+        
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found with ID: " + eventId));
+        
+        // Check if event name is being changed and if new name already exists
+        if (!event.getName().equals(request.getName()) && 
+            eventRepository.existsByName(request.getName())) {
+            throw new RuntimeException("Event with name '" + request.getName() + "' already exists");
+        }
+
+        // Validate dates
+        if (request.getEndDate().isBefore(request.getStartDate())) {
+            throw new RuntimeException("End date cannot be before start date");
+        }
+
+        // Update event fields
+        event.setYear(request.getYear());
+        event.setName(request.getName());
+        event.setStartDate(request.getStartDate());
+        event.setEndDate(request.getEndDate());
+        event.setLocation(request.getLocation());
+        if (request.getStatus() != null) {
+            event.setStatus(request.getStatus());
+        }
+
+        Event updatedEvent = eventRepository.save(event);
+        log.info("Event updated successfully with ID: {}", updatedEvent.getId());
+
+        return convertToDTO(updatedEvent);
+    }
+
+    /**
      * Update event status
      */
     public EventDTO updateEventStatus(UUID eventId, EventStatus status) {
