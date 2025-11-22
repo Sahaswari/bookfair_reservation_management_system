@@ -7,11 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen } from "lucide-react";
-import { Link } from "react-router-dom";
+import type { Location } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, register } = useAuth();
+  const redirectTo = (location.state as { from?: Location })?.from?.pathname || "/dashboard";
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [regEmail, setRegEmail] = useState("");
@@ -21,23 +27,29 @@ export default function Login() {
   const [contactPerson, setContactPerson] = useState("");
   const [phone, setPhone] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
       toast.error("Please fill in all fields");
       return;
     }
-    
-    // Store public user session
-    localStorage.setItem('publicUser', 'true');
-    localStorage.setItem('publicEmail', loginEmail);
-    
-    toast.success("Login successful!");
-    navigate("/dashboard");
+    try {
+      setIsLoggingIn(true);
+      await login(loginEmail, loginPassword);
+      toast.success("Login successful!");
+      navigate(redirectTo);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Login failed";
+      toast.error(message);
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regEmail || !regPassword || !regConfirmPassword || !businessName || !contactPerson || !phone) {
       toast.error("Please fill in all fields");
@@ -51,13 +63,28 @@ export default function Login() {
       toast.error("Please accept the terms and conditions");
       return;
     }
-    
-    // Store public user session
-    localStorage.setItem('publicUser', 'true');
-    localStorage.setItem('publicEmail', regEmail);
-    
-    toast.success("Registration successful!");
-    navigate("/dashboard");
+
+    const [firstName, ...lastNameParts] = contactPerson.trim().split(" ");
+    const lastName = lastNameParts.join(" ") || "-";
+
+    try {
+      setIsRegistering(true);
+      await register({
+        firstName,
+        lastName,
+        companyName: businessName,
+        email: regEmail,
+        mobileNo: phone,
+        password: regPassword,
+      });
+      toast.success("Registration successful!");
+      navigate("/dashboard");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Registration failed";
+      toast.error(message);
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   return (
@@ -114,7 +141,7 @@ export default function Login() {
                     />
                   </div>
                   <Button type="submit" className="w-full">
-                    Login
+                    {isLoggingIn ? "Logging in..." : "Login"}
                   </Button>
                 </form>
               </TabsContent>
@@ -188,7 +215,7 @@ export default function Login() {
                     </Label>
                   </div>
                   <Button type="submit" className="w-full">
-                    Register
+                    {isRegistering ? "Registering..." : "Register"}
                   </Button>
                 </form>
               </TabsContent>
