@@ -61,7 +61,7 @@ This system follows a microservices architecture with:
 | **Auth Service** | 8081 | Handles authentication and authorization |
 | **Genre Service** | 8082 | Manages book genres and categories |
 | **Notification Service** | 8083 | Sends notifications and alerts |
-| **Reservation Service** | 8084 | Manages stall reservations |
+| **Reservation Service** | 8086 | Manages stall reservations |
 | **Stall Service** | 8085 | Manages stall information and availability |
 
 ### Frontend Portals
@@ -79,6 +79,13 @@ This system follows a microservices architecture with:
 - Ports **8080-8085**, **3000**, and **3001** available
 
 ## 🚀 Quick Start with Docker
+
+Before starting containers make sure you have a real `.env` file with the current secrets:
+
+```powershell
+Copy-Item .env.example .env
+# open .env and set APP_JWT_SECRET to a strong random value shared by api-gateway + auth-service
+```
 
 ### Method 1: Using PowerShell Script (Recommended)
 
@@ -99,7 +106,7 @@ This system follows a microservices architecture with:
 ### Method 2: Using Docker Compose
 
 ```powershell
-# Build and start all services
+# Build and start all services (reads .env automatically)
 docker-compose up -d --build
 
 # Check status
@@ -132,10 +139,12 @@ Once all containers are running:
 - **Auth Service**: http://localhost:8081
 - **Genre Service**: http://localhost:8082
 - **Notification Service**: http://localhost:8083
-- **Reservation Service**: http://localhost:8084
+- **Reservation Service**: http://localhost:8086
 - **Stall Service**: http://localhost:8085
 - **Employee Portal**: http://localhost:3000
 - **User Portal**: http://localhost:3001
+
+> Need to test auth flows only? Run `docker compose up -d --build api-gateway auth-service` to rebuild just those services with the latest code.
 
 ## 💻 Development
 
@@ -241,6 +250,12 @@ cp .env.example .env
 
 Edit the `.env` file to set your environment-specific values.
 
+| Variable | Description |
+|----------|-------------|
+| `APP_JWT_SECRET` | Shared secret used by both the API gateway and auth-service to validate JWTs. This **must** be the same value everywhere (local dev, Docker, CI) to avoid 401s after refresh token flows. |
+
+You can leave other values at their defaults to start, but never commit real secrets.
+
 ### Backend Configuration
 
 Each backend service can be configured via `application.properties`:
@@ -270,6 +285,13 @@ postgres:
     - "5432:5432"
   # ... rest of configuration
 ```
+
+## 🔐 Authentication & Sessions
+
+- Access tokens and refresh tokens are issued by the auth-service and verified at the API gateway using the shared `APP_JWT_SECRET`.
+- Every login or registration now enforces a **single active user session**. When a new token pair is minted, any previous active sessions for that user are soft-deactivated (logout timestamp recorded) to reduce the attack surface.
+- Refresh token flow: call `/api/auth/refresh` via the gateway to obtain a new pair, then immediately retry protected routes such as `/api/auth/logout` or `/api/users/me` with the new access token.
+- If you see 401s after refreshing, double-check that the gateway and auth-service are reading the same secret from `.env` or compose overrides.
 
 ## 🛠️ Troubleshooting
 
