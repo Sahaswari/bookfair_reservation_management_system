@@ -84,13 +84,49 @@ services:
       dockerfile: Dockerfile
     container_name: bookfair-reservation-service
     ports:
-      - "8084:8084"
+      - "8086:8086"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8084
-      # Add database connection details if needed
+      - SERVER_PORT=8086
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-postgres:5432/reservation_service_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=create
+      - SPRING_JPA_SHOW_SQL=true
     networks:
       - bookfair-network
+    depends_on:
+      reservation-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/api/reservations || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # PostgreSQL Database for Reservation Service
+  reservation-postgres:
+    image: postgres:16-alpine
+    container_name: bookfair-reservation-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=reservation_service_db
+      - POSTGRES_INITDB_ARGS=-c password_encryption=scram-sha-256
+    volumes:
+      - ./backend/reservation-service/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - reservation-postgres-data:/var/lib/postgresql/data
+    networks:
+      - bookfair-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # Stall Service
@@ -219,6 +255,7 @@ networks:
     driver: bridge
 
 volumes:
+  reservation-postgres-data:
   stall-postgres-data:
 #   postgres-data:
 #   redis-data:
