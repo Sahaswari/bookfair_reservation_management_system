@@ -68,6 +68,15 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://genre-db:5432/genre_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - APP_KAFKA_ENABLED=true
+      - APP_KAFKA_USER_EVENTS_TOPIC=user-events
+      - APP_KAFKA_CONSUMER_GROUP_ID=genre-service-user-sync
+      - APP_KAFKA_LISTENER_CONCURRENCY=1
+      - APP_KAFKA_RETRY_MAX_ATTEMPTS=3
+      - APP_KAFKA_RETRY_INITIAL_INTERVAL_MS=2000
+      - APP_KAFKA_RETRY_MAX_INTERVAL_MS=60000
+      - APP_KAFKA_RETRY_MULTIPLIER=2.0
     networks:
       - bookfair-network
     depends_on:
@@ -89,6 +98,15 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notification_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - APP_KAFKA_ENABLED=true
+      - APP_KAFKA_USER_EVENTS_TOPIC=user-events
+      - APP_KAFKA_CONSUMER_GROUP_ID=notification-service-user-sync
+      - APP_KAFKA_LISTENER_CONCURRENCY=1
+      - APP_KAFKA_RETRY_MAX_ATTEMPTS=3
+      - APP_KAFKA_RETRY_INITIAL_INTERVAL_MS=2000
+      - APP_KAFKA_RETRY_MAX_INTERVAL_MS=60000
+      - APP_KAFKA_RETRY_MULTIPLIER=2.0
     networks:
       - bookfair-network
     depends_on:
@@ -110,6 +128,15 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-db:5432/reservation_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - APP_KAFKA_ENABLED=true
+      - APP_KAFKA_USER_EVENTS_TOPIC=user-events
+      - APP_KAFKA_CONSUMER_GROUP_ID=reservation-service-user-sync
+      - APP_KAFKA_LISTENER_CONCURRENCY=1
+      - APP_KAFKA_RETRY_MAX_ATTEMPTS=3
+      - APP_KAFKA_RETRY_INITIAL_INTERVAL_MS=2000
+      - APP_KAFKA_RETRY_MAX_INTERVAL_MS=60000
+      - APP_KAFKA_RETRY_MULTIPLIER=2.0
     networks:
       - bookfair-network
     depends_on:
@@ -134,11 +161,11 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - APP_KAFKA_ENABLED=true
       - APP_KAFKA_USER_EVENTS_TOPIC=user-events
-      - APP_KAFKA_CONSUMER-GROUP-ID=stall-service-user-sync
-      - APP_KAFKA_LISTENER-CONCURRENCY=2
-      - APP_KAFKA_RETRY_MAX-ATTEMPTS=5
-      - APP_KAFKA_RETRY_INITIAL-INTERVAL-MS=2000
-      - APP_KAFKA_RETRY_MAX-INTERVAL-MS=60000
+      - APP_KAFKA_CONSUMER_GROUP_ID=stall-service-user-sync
+      - APP_KAFKA_LISTENER_CONCURRENCY=2
+      - APP_KAFKA_RETRY_MAX_ATTEMPTS=5
+      - APP_KAFKA_RETRY_INITIAL_INTERVAL_MS=2000
+      - APP_KAFKA_RETRY_MAX_INTERVAL_MS=60000
       - APP_KAFKA_RETRY_MULTIPLIER=2.0
     networks:
       - bookfair-network
@@ -198,7 +225,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=G
+      - POSTGRES_DB=reservation_db
     volumes:
       - reservation-db-data:/var/lib/postgresql/data
     networks:
