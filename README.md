@@ -142,12 +142,24 @@ Once all containers are running:
 - **Reservation Service**: http://localhost:8086
 - **Stall Service**: http://localhost:8085
 - **Employee Portal**: http://localhost:3000
-- **User Portal**: http://localhost:3001
+- **Kafka UI**: http://localhost:19000
+- **Schema Registry**: http://localhost:18081
 
 > Need to test auth flows only? Run `docker compose up -d --build api-gateway auth-service` to rebuild just those services with the latest code.
 
-## 💻 Development
+## 📊 Kafka UI
 
+Need to inspect Kafka traffic between auth-service and stall-service? A bundled [provectuslabs/kafka-ui](https://github.com/provectus/kafka-ui) container now rides on the Confluent Kafka/ZooKeeper/Schema Registry stack:
+
+```powershell
+# launch the UI (also starts Kafka/ZooKeeper/Schema Registry if needed)
+docker compose up -d kafka-ui
+
+# follow its logs (optional)
+docker compose logs -f kafka-ui
+```
+
+Open http://localhost:19000 to browse clusters, inspect topics such as `user-events`, and view message payloads or consumer lag in real time. Stop it when finished with `docker compose down kafka-ui` or by shutting down the full stack. Schema Registry is optional for JSON payloads but already exposed at http://localhost:18081 should you later adopt Avro/Protobuf schemas. Both services now self-wait for Kafka (and Schema Registry) at startup, so a single `docker compose up -d --build` is enough—no manual retries required.
 ### Running Services Locally
 
 For active development with hot reload:
