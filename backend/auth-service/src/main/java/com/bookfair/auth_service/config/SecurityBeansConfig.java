@@ -49,7 +49,12 @@ public class SecurityBeansConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/refresh-token").permitAll()
+                    .requestMatchers(HttpMethod.POST,
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/refresh-token",
+                        "/api/auth/forgot-password",
+                        "/api/auth/reset-password").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
