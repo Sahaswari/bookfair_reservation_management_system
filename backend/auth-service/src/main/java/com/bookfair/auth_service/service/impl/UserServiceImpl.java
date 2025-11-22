@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -115,6 +116,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private AuthResponse buildAuthResponse(User user, String deviceInfo, String ipAddress) {
+        deactivateActiveSessions(user.getId());
         String resolvedDevice = (deviceInfo == null || deviceInfo.isBlank()) ? "unknown" : deviceInfo;
         String resolvedIp = (ipAddress == null || ipAddress.isBlank()) ? "unknown" : ipAddress;
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId().toString(), user.getRole());
@@ -148,6 +150,19 @@ public class UserServiceImpl implements UserService {
         session.setActive(false);
         session.setLogoutTime(Instant.now());
         userSessionRepository.save(session);
+    }
+
+    private void deactivateActiveSessions(UUID userId) {
+        List<UserSession> activeSessions = userSessionRepository.findAllByUserIdAndActiveTrue(userId);
+        if (activeSessions.isEmpty()) {
+            return;
+        }
+        Instant now = Instant.now();
+        activeSessions.forEach(session -> {
+            session.setActive(false);
+            session.setLogoutTime(now);
+        });
+        userSessionRepository.saveAll(activeSessions);
     }
 
     private void publishUserRegistered(User user) {
