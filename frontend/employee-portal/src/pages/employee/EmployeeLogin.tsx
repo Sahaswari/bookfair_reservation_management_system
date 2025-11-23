@@ -6,26 +6,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BookOpen, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { authApi } from "@/lib/api";
+import { Link } from "react-router-dom";
 
 export default function EmployeeLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
-    
-    // Store employee session (separate from public users)
-    localStorage.setItem("employeeUser", "true");
-    localStorage.setItem("employeeEmail", email);
-    
-    toast.success("Login successful!");
-    navigate("/dashboard");
+
+    setIsSubmitting(true);
+    authApi
+      .login(email, password)
+      .then(() => {
+        toast.success("Login successful!");
+        navigate("/dashboard");
+      })
+      .catch((err: Error) => {
+        toast.error(err.message || "Login failed");
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   return (
@@ -79,9 +87,16 @@ export default function EmployeeLogin() {
                 />
               </div>
 
-              <Button type="submit" variant="employee" className="w-full" size="lg">
-                Sign In
+              <Button type="submit" variant="employee" className="w-full" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? "Signing in..." : "Sign In"}
               </Button>
+
+              <p className="text-sm text-muted-foreground text-center">
+                Need an organiser account?{" "}
+                <Link to="/register" className="text-employee hover:underline">
+                  Register here
+                </Link>
+              </p>
             </form>
           </CardContent>
         </Card>
