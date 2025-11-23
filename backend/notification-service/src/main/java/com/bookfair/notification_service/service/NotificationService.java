@@ -172,8 +172,9 @@ public class NotificationService {
             throw new NotificationException("Notification has reached maximum retry attempts");
         }
 
-        UserSnapshot user = userSnapshotRepository.findById(notification.getUserId())
-                .orElseThrow(() -> new NotificationException("User not found: " + notification.getUserId()));
+        UUID userId = notification.getUserId();
+        UserSnapshot user = userSnapshotRepository.findById(userId)
+                .orElseThrow(() -> new NotificationException("User not found: " + userId));
 
         notification.setStatus(NotificationStatus.PENDING);
         notification.incrementRetryCount();
@@ -198,8 +199,9 @@ public class NotificationService {
 
         for (Notification notification : scheduledNotifications) {
             try {
-                UserSnapshot user = userSnapshotRepository.findById(notification.getUserId())
-                        .orElseThrow(() -> new NotificationException("User not found: " + notification.getUserId()));
+                UUID userId = notification.getUserId();
+                UserSnapshot user = userSnapshotRepository.findById(userId)
+                        .orElseThrow(() -> new NotificationException("User not found: " + userId));
                 sendNotification(notification, user);
             } catch (Exception e) {
                 log.error("Failed to process scheduled notification: {}", notification.getId(), e);
