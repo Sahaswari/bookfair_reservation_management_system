@@ -17,7 +17,7 @@ services:
       - RESERVATION_SERVICE_URI=http://reservation-service:8084
       - GENRE_SERVICE_URI=http://genre-service:8082
       - NOTIFICATION_SERVICE_URI=http://notification-service:8083
-      - GATEWAY_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+      - GATEWAY_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3003,http://localhost:3002
       - APP_JWT_SECRET=${APP_JWT_SECRET:-ChangeMePlease_ToASuperStrongJwtSecret_2025}
     networks:
       - bookfair-network
