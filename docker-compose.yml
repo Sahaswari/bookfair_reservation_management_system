@@ -108,6 +108,10 @@ services:
       - APP_KAFKA_RETRY_INITIAL_INTERVAL_MS=2000
       - APP_KAFKA_RETRY_MAX_INTERVAL_MS=60000
       - APP_KAFKA_RETRY_MULTIPLIER=2.0
+      # Email Configuration (Gmail SMTP)
+      - MAIL_USERNAME=${MAIL_USERNAME:-your-email@gmail.com}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-your-app-password}
+      - APP_NOTIFICATION_EMAIL_ENABLED=true
     networks:
       - bookfair-network
     depends_on:
