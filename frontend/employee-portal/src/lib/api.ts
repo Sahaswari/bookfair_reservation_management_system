@@ -39,6 +39,24 @@ const getStoredTokens = () => {
   return { accessToken, refreshToken, accessExpiresAt };
 };
 
+const extractFirstErrorMessage = (data: unknown): string | null => {
+  if (!data) return null;
+  if (typeof data === "string") return data;
+  if (Array.isArray(data)) {
+    for (const value of data) {
+      const nested = extractFirstErrorMessage(value);
+      if (nested) return nested;
+    }
+  }
+  if (typeof data === "object") {
+    for (const value of Object.values(data as Record<string, unknown>)) {
+      const nested = extractFirstErrorMessage(value);
+      if (nested) return nested;
+    }
+  }
+  return null;
+};
+
 const setTokens = (tokens: AuthTokens) => {
   const expiresAt = Date.now() + tokens.expiresIn - 5_000; // small buffer before expiry
   localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
@@ -126,11 +144,31 @@ export const apiFetch = async <T>(
     throw new Error("Unauthorized");
   }
 
-  const json = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || json.success === false) {
-    throw new Error(json.message || "Request failed");
+  const rawBody = await response.text();
+  let parsedBody: ApiResponse<T> | null = null;
+  if (rawBody) {
+    try {
+      parsedBody = JSON.parse(rawBody) as ApiResponse<T>;
+    } catch (err) {
+      // Non-JSON body; leave parsedBody as null so we surface raw text below.
+    }
   }
-  return json;
+
+  if (!response.ok || parsedBody?.success === false) {
+    const detailedMessage =
+      extractFirstErrorMessage(parsedBody?.data) ||
+      parsedBody?.message ||
+      rawBody ||
+      response.statusText ||
+      "Request failed";
+    throw new Error(detailedMessage);
+  }
+
+  if (!parsedBody) {
+    throw new Error("Unexpected empty server response");
+  }
+
+  return parsedBody;
 };
 
 export const authApi = {

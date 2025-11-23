@@ -22,8 +22,25 @@ export default function EmployeeRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!firstName || !email || !mobileNo || !password || !confirmPassword) {
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedCompanyName = companyName.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedMobile = mobileNo.trim();
+    const phonePattern = /^[0-9+\-() ]{7,20}$/;
+
+    if (!trimmedFirstName || !normalizedEmail || !normalizedMobile || !password || !confirmPassword) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (!phonePattern.test(normalizedMobile)) {
+      toast.error("Phone can only include digits, spaces or + - () and must be 7-20 characters");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      toast.error("Please enter a valid work email");
       return;
     }
 
@@ -35,11 +52,11 @@ export default function EmployeeRegister() {
     try {
       setIsSubmitting(true);
       await authApi.register({
-        firstName,
-        lastName,
-        companyName,
-        email,
-        mobileNo,
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        companyName: trimmedCompanyName,
+        email: normalizedEmail,
+        mobileNo: normalizedMobile,
         password,
         role: "ORGANIZER",
       });
