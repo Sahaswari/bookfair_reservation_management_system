@@ -23,6 +23,9 @@ public class UserSyncKafkaProperties {
     private String userEventsTopic = "user-events";
 
     @NotBlank
+    private String stallEventsTopic = "stall-events";
+
+    @NotBlank
     private String consumerGroupId = "stall-service-user-sync";
 
     @Min(1)
