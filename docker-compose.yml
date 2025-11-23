@@ -95,7 +95,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8083
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notification_service_db?stringtype=unspecified
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notification_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
@@ -128,7 +128,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8086
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-db:5432/reservation_service_db?stringtype=unspecified
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-db:5432/reservation_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092

@@ -1,6 +1,6 @@
 package com.bookfair.notification_service.messaging;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.kafka.annotation.KafkaListener;
@@ -29,7 +29,7 @@ public class ReservationEventListener {
     @KafkaListener(
             topics = "${app.kafka.reservation-events-topic:reservation-events}",
             groupId = "${app.kafka.consumer-group-id:notification-service-reservation-sync}",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "reservationKafkaListenerContainerFactory"
     )
     public void handleReservationEvent(ReservationLifecycleEvent event) {
         try {
@@ -54,7 +54,7 @@ public class ReservationEventListener {
             snapshot.setReservationDate(event.getReservationDate());
             snapshot.setConfirmationCode(event.getConfirmationCode());
             snapshot.setQrCodeUrl(event.getQrCodeUrl());
-            snapshot.setUpdatedAt(LocalDateTime.now());
+            snapshot.setUpdatedAt(Instant.now());
 
             // Save updated snapshot
             reservationSnapshotRepository.save(snapshot);
