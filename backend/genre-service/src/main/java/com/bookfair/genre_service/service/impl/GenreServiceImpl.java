@@ -132,4 +132,18 @@ public class GenreServiceImpl implements GenreService {
 
         return r;
     }
+
+    @Override
+    public List<GenreResponse> getGenresByUser(UUID userId) {
+
+        // Check if user exists
+        userSnapshotRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        List<Genre> genres = genreRepository.findByCreatedBy(userId);
+
+        return genres.stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+    }
 }
