@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { clearSession, getEmployeeEmail, hasEmployeeSession } from "@/lib/api";
 
 export const useEmployeeAuth = () => {
   const navigate = useNavigate();
@@ -7,20 +8,19 @@ export const useEmployeeAuth = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const employeeUser = localStorage.getItem("employeeUser");
-    const employeeEmail = localStorage.getItem("employeeEmail");
+    const hasSession = hasEmployeeSession();
+    const email = getEmployeeEmail();
 
-    if (employeeUser === "true" && employeeEmail) {
+    if (hasSession && email) {
       setIsAuthenticated(true);
-      setUserEmail(employeeEmail);
+      setUserEmail(email);
     } else {
       navigate("/login");
     }
   }, [navigate]);
 
   const logout = () => {
-    localStorage.removeItem("employeeUser");
-    localStorage.removeItem("employeeEmail");
+    clearSession();
     setIsAuthenticated(false);
     setUserEmail(null);
     navigate("/login");

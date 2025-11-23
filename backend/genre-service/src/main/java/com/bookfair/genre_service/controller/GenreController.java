@@ -42,4 +42,9 @@ public class GenreController {
     public void delete(@PathVariable UUID id) {
         genreService.deleteGenre(id);
     }
+
+    @GetMapping("/user/{userId}")
+    public List<GenreResponse> getByUser(@PathVariable UUID userId) {
+        return genreService.getGenresByUser(userId);
+    }
 }
