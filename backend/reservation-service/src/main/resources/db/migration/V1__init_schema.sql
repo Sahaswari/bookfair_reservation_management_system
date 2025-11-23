@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS user_snapshot (
     first_name VARCHAR(100),
     last_name VARCHAR(100),
     email VARCHAR(255),
+    mobile_no VARCHAR(255),
     role VARCHAR(50),
     status VARCHAR(50),
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP

@@ -1,4 +1,4 @@
-package com.bookfair.genre_service.entity;
+package com.bookfair.notification_service.entity;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -31,8 +31,8 @@ public class UserSnapshot {
     @Column(length = 255)
     private String email;
 
-    @Column(name = "mobile_no", length = 255)
-    private String mobileNo;
+    @Column(length = 30)
+    private String phone;
 
     @Column(length = 50)
     private String role;

@@ -1,4 +1,4 @@
-package com.bookfair.stall_service.config;
+package com.bookfair.notification_service.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -8,9 +8,6 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Application-specific Kafka knobs for synchronising user snapshots.
- */
 @Getter
 @Setter
 @Validated
@@ -23,7 +20,7 @@ public class UserSyncKafkaProperties {
     private String userEventsTopic = "user-events";
 
     @NotBlank
-    private String consumerGroupId = "stall-service-user-sync";
+    private String consumerGroupId = "notification-service-user-sync";
 
     @Min(1)
     private int listenerConcurrency = 1;

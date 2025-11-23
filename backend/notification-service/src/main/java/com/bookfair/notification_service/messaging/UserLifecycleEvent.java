@@ -1,4 +1,4 @@
-package com.bookfair.stall_service.messaging;
+package com.bookfair.notification_service.messaging;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -8,9 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Canonical representation of user lifecycle messages produced by the Auth Service.
- */
 @Data
 @Builder
 @NoArgsConstructor
