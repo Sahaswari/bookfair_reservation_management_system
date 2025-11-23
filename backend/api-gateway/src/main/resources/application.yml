@@ -42,7 +42,7 @@ spring:
             - id: stall-service
               uri: ${STALL_SERVICE_URI:http://localhost:8085}
               predicates:
-                - Path=/api/stalls/**
+                - Path=/api/stalls/**,/api/events/**
             - id: reservation-service
               uri: ${RESERVATION_SERVICE_URI:http://localhost:8084}
               predicates:

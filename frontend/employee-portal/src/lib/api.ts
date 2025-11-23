@@ -6,14 +6,14 @@ const ACCESS_EXPIRES_AT_KEY = "employee.accessExpiresAt";
 const EMPLOYEE_EMAIL_KEY = "employeeEmail";
 const EMPLOYEE_FLAG_KEY = "employeeUser";
 
-type ApiResponse<T> = {
+export type ApiResponse<T> = {
   success: boolean;
   message: string;
   data: T;
   timestamp: string;
 };
 
-type AuthTokens = {
+export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number; // milliseconds

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,32 +12,64 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Eye, XCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
+import { useEmployeeAuth } from "@/hooks/useEmployeeAuth";
+import { stallApi } from "@/lib/stallApi";
+import { useToast } from "@/components/ui/use-toast";
+
+const ITEMS_PER_PAGE = 10;
+
+const formatDate = (value?: string) => {
+  if (!value) return "-";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleDateString();
+};
 
 export default function ReservationList() {
+  const { isAuthenticated } = useEmployeeAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  // Mock data - would come from backend in production
-  const mockReservations = Array.from({ length: 25 }, (_, i) => ({
-    id: `RES${String(i + 1).padStart(4, '0')}`,
-    vendor: `Publisher ${i + 1}`,
-    stalls: [`A${String(i + 1).padStart(2, '0')}`, `B${String(i + 1).padStart(2, '0')}`],
-    status: i % 3 === 0 ? 'Pending Payment' : 'Confirmed',
-    date: new Date(2025, 0, 15 + i).toLocaleDateString(),
-    totalPrice: 40000 + (i * 1000),
-  }));
+  const reservationsQuery = useQuery({
+    queryKey: ["reserved-stalls", vendorFilter],
+    queryFn: () =>
+      vendorFilter.trim() ? stallApi.listStallsByVendor(vendorFilter.trim()) : stallApi.listStalls(),
+    select: (stalls) => stalls.filter((stall) => stall.isReserved),
+  });
 
-  const filteredReservations = mockReservations.filter(
-    r => r.vendor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         r.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const reservations = reservationsQuery.data ?? [];
 
-  const totalPages = Math.ceil(filteredReservations.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedReservations = filteredReservations.slice(startIndex, startIndex + itemsPerPage);
+  const filteredReservations = useMemo(() => {
+    const normalized = searchQuery.trim().toLowerCase();
+    if (!normalized) return reservations;
+
+    return reservations.filter((reservation) => {
+      const vendor = (reservation.reservedByName ?? reservation.reservedBy ?? "").toLowerCase();
+      const code = reservation.stallCode.toLowerCase();
+      return vendor.includes(normalized) || code.includes(normalized);
+    });
+  }, [reservations, searchQuery]);
+
+  const totalPages = Math.ceil(filteredReservations.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedReservations = filteredReservations.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const unreserveMutation = useMutation({
+    mutationFn: (id: string) => stallApi.unreserveStall(id),
+    onSuccess: () => {
+      toast({ title: "Reservation released" });
+      queryClient.invalidateQueries({ queryKey: ["reserved-stalls"] });
+    },
+    onError: () => toast({ title: "Failed to release reservation", variant: "destructive" }),
+  });
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,20 +77,31 @@ export default function ReservationList() {
       
       <div className="container py-8">
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-4xl font-bold mb-2">Reservation List</h1>
-              <p className="text-muted-foreground">
-                Manage all vendor reservations
-              </p>
+              <p className="text-muted-foreground">Live reserved stalls from stall-service</p>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-wrap gap-3">
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search stall or vendor..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9"
+                />
+              </div>
               <Input
-                placeholder="Search reservations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                placeholder="Filter by vendor ID (calls /vendor endpoint)"
+                value={vendorFilter}
+                onChange={(e) => {
+                  setVendorFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
           </div>
@@ -66,7 +110,7 @@ export default function ReservationList() {
             <CardHeader>
               <CardTitle>All Reservations</CardTitle>
               <CardDescription>
-                {filteredReservations.length} total reservations
+                {filteredReservations.length} reserved stalls
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -74,45 +118,66 @@ export default function ReservationList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ID</TableHead>
+                      <TableHead>Stall</TableHead>
                       <TableHead>Vendor</TableHead>
-                      <TableHead>Stalls</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Amount</TableHead>
+                      <TableHead>Event</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Updated</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedReservations.map((reservation) => (
-                      <TableRow key={reservation.id}>
-                        <TableCell className="font-medium">{reservation.id}</TableCell>
-                        <TableCell>{reservation.vendor}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            {reservation.stalls.map((stall) => (
-                              <Badge key={stall} variant="outline" className="text-xs">
-                                {stall}
-                              </Badge>
-                            ))}
+                    {reservationsQuery.isLoading && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" /> Loading reservations...
                           </div>
                         </TableCell>
+                      </TableRow>
+                    )}
+                    {!reservationsQuery.isLoading && paginatedReservations.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          No reservations found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {paginatedReservations.map((reservation) => (
+                      <TableRow key={reservation.id}>
+                        <TableCell className="font-medium">{reservation.stallCode}</TableCell>
                         <TableCell>
-                          <Badge variant={reservation.status === 'Confirmed' ? 'default' : 'secondary'}>
-                            {reservation.status}
-                          </Badge>
+                          <div className="flex flex-col">
+                            <span className="font-semibold">
+                              {reservation.reservedByName || reservation.reservedBy || "Unknown"}
+                            </span>
+                            {reservation.reservedBy && (
+                              <span className="text-xs text-muted-foreground">{reservation.reservedBy}</span>
+                            )}
+                          </div>
                         </TableCell>
-                        <TableCell>{reservation.date}</TableCell>
+                        <TableCell>{reservation.eventName ?? "-"}</TableCell>
                         <TableCell className="font-semibold">
-                          LKR {reservation.totalPrice.toLocaleString()}
+                          LKR {reservation.price.toLocaleString()}
                         </TableCell>
+                        <TableCell>{formatDate(reservation.updatedAt ?? reservation.createdAt)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" title="View Details">
+                            <Button variant="ghost" size="icon" title="View Details" disabled>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" title="Cancel Reservation">
-                              <XCircle className="h-4 w-4 text-destructive" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Cancel Reservation"
+                              onClick={() => unreserveMutation.mutate(reservation.id)}
+                              disabled={unreserveMutation.isPending}
+                            >
+                              {unreserveMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-destructive" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>
@@ -125,7 +190,7 @@ export default function ReservationList() {
               {/* Pagination */}
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredReservations.length)} of {filteredReservations.length} reservations
+                  Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredReservations.length)} of {filteredReservations.length} reservations
                 </p>
                 <div className="flex gap-2">
                   <Button
