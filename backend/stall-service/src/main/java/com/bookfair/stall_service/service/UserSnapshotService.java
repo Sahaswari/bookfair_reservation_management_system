@@ -32,6 +32,7 @@ public class UserSnapshotService {
         userSnapshot.setFirstName(userSnapshotDTO.getFirstName());
         userSnapshot.setLastName(userSnapshotDTO.getLastName());
         userSnapshot.setEmail(userSnapshotDTO.getEmail());
+        userSnapshot.setMobileNo(userSnapshotDTO.getMobileNo());
         userSnapshot.setRole(userSnapshotDTO.getRole());
         userSnapshot.setStatus(userSnapshotDTO.getStatus());
         userSnapshot.setUpdatedAt(LocalDateTime.now());
@@ -65,6 +66,13 @@ public class UserSnapshotService {
         userSnapshotRepository.deleteById(id);
     }
 
+    public void deleteUserSnapshotByUserId(UUID userId) {
+        if (!userSnapshotRepository.existsByUserId(userId)) {
+            return;
+        }
+        userSnapshotRepository.deleteByUserId(userId);
+    }
+
     private UserSnapshotDTO convertToDTO(UserSnapshot userSnapshot) {
         UserSnapshotDTO dto = new UserSnapshotDTO();
         dto.setId(userSnapshot.getId());
@@ -72,6 +80,7 @@ public class UserSnapshotService {
         dto.setFirstName(userSnapshot.getFirstName());
         dto.setLastName(userSnapshot.getLastName());
         dto.setEmail(userSnapshot.getEmail());
+        dto.setMobileNo(userSnapshot.getMobileNo());
         dto.setRole(userSnapshot.getRole());
         dto.setStatus(userSnapshot.getStatus());
         dto.setUpdatedAt(userSnapshot.getUpdatedAt());

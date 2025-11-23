@@ -2,10 +2,13 @@ package com.bookfair.auth_service.controller;
 
 import com.bookfair.auth_service.dto.ApiResponse;
 import com.bookfair.auth_service.dto.AuthResponse;
+import com.bookfair.auth_service.dto.ForgotPasswordRequest;
 import com.bookfair.auth_service.dto.LoginRequest;
 import com.bookfair.auth_service.dto.RefreshTokenRequest;
 import com.bookfair.auth_service.dto.RegistrationRequest;
+import com.bookfair.auth_service.dto.ResetPasswordRequest;
 import com.bookfair.auth_service.service.UserService;
+import com.bookfair.auth_service.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ import java.time.Instant;
 public class AuthController {
 
     private final UserService userService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@RequestBody @Valid RegistrationRequest request, HttpServletRequest servletRequest) {
@@ -59,5 +63,17 @@ public class AuthController {
         }
         ApiResponse<Void> apiResponse = new ApiResponse<>(true, "Logout successful", null, Instant.now());
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        passwordResetService.sendResetInstructions(request);
+        return ResponseEntity.ok(ApiResponse.success("If the email exists, reset instructions have been sent", null));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Password reset successfully", null));
     }
 }
