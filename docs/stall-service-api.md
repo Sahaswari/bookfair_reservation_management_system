@@ -206,6 +206,7 @@ Used to cache user information from the Auth Service to reduce inter-service cal
   "firstName": "John",
   "lastName": "Doe",
   "email": "john@example.com",
+  "mobileNo": "+94771234567",
   "role": "VENDOR",
   "status": "ACTIVE"
 }

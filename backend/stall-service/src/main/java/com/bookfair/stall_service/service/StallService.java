@@ -9,6 +9,7 @@ import com.bookfair.stall_service.entity.UserSnapshot;
 import com.bookfair.stall_service.repository.EventRepository;
 import com.bookfair.stall_service.repository.StallRepository;
 import com.bookfair.stall_service.repository.UserSnapshotRepository;
+import com.bookfair.stall_service.messaging.StallEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class StallService {
     private final StallRepository stallRepository;
     private final EventRepository eventRepository;
     private final UserSnapshotRepository userSnapshotRepository;
+    private final StallEventPublisher stallEventPublisher;
 
     /**
      * Create a new stall
@@ -58,6 +60,9 @@ public class StallService {
 
         Stall savedStall = stallRepository.save(stall);
         log.info("Stall created successfully with ID: {}", savedStall.getId());
+
+        // Publish event
+        stallEventPublisher.publishStallCreated(savedStall);
 
         return convertToDTO(savedStall);
     }
@@ -128,6 +133,9 @@ public class StallService {
 
         Stall updatedStall = stallRepository.save(stall);
         log.info("Stall updated successfully: {}", updatedStall.getStallCode());
+
+        // Publish event
+        stallEventPublisher.publishStallUpdated(updatedStall);
 
         return convertToDTO(updatedStall);
     }
@@ -230,6 +238,9 @@ public class StallService {
         
         stallRepository.delete(stall);
         log.info("Stall deleted successfully");
+
+        // Publish event
+        stallEventPublisher.publishStallDeleted(stall);
     }
 
     /**

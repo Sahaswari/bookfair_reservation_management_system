@@ -40,7 +40,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8081
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
@@ -65,7 +65,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8082
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://genre-db:5432/genre_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://genre-db:5432/genre_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
@@ -95,12 +95,13 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8083
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notification_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notification_service_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - APP_KAFKA_ENABLED=true
       - APP_KAFKA_USER_EVENTS_TOPIC=user-events
+      - APP_KAFKA_RESERVATION_EVENTS_TOPIC=reservation-events
       - APP_KAFKA_CONSUMER_GROUP_ID=notification-service-user-sync
       - APP_KAFKA_LISTENER_CONCURRENCY=1
       - APP_KAFKA_RETRY_MAX_ATTEMPTS=3
@@ -111,6 +112,8 @@ services:
       - bookfair-network
     depends_on:
       notification-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: unless-stopped
 
@@ -124,13 +127,15 @@ services:
       - "8086:8086"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8084
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-db:5432/reservation_db
+      - SERVER_PORT=8086
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-db:5432/reservation_service_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - APP_KAFKA_ENABLED=true
       - APP_KAFKA_USER_EVENTS_TOPIC=user-events
+      - APP_KAFKA_STALL_EVENTS_TOPIC=stall-events
+      - APP_KAFKA_RESERVATION_EVENTS_TOPIC=reservation-events
       - APP_KAFKA_CONSUMER_GROUP_ID=reservation-service-user-sync
       - APP_KAFKA_LISTENER_CONCURRENCY=1
       - APP_KAFKA_RETRY_MAX_ATTEMPTS=3
@@ -141,6 +146,8 @@ services:
       - bookfair-network
     depends_on:
       reservation-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: unless-stopped
 
@@ -155,12 +162,13 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8085
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://stall-db:5432/stall_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://stall-db:5432/stall_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - APP_KAFKA_ENABLED=true
       - APP_KAFKA_USER_EVENTS_TOPIC=user-events
+      - APP_KAFKA_STALL_EVENTS_TOPIC=stall-events
       - APP_KAFKA_CONSUMER_GROUP_ID=stall-service-user-sync
       - APP_KAFKA_LISTENER_CONCURRENCY=2
       - APP_KAFKA_RETRY_MAX_ATTEMPTS=5
@@ -291,9 +299,9 @@ services:
     healthcheck:
       test: ["CMD", "bash", "-c", "cub zk-ready localhost 2181"]
       interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 40s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
     networks:
       - bookfair-network
     restart: unless-stopped
@@ -321,9 +329,9 @@ services:
     healthcheck:
       test: ["CMD", "bash", "-c", "cub kafka-ready -b localhost:9092 1 20"]
       interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
     networks:
       - bookfair-network
     restart: unless-stopped

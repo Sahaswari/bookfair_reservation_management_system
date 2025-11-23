@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS user_snapshot (
 );
 
 CREATE TABLE IF NOT EXISTS reservation_snapshot (
-    reservation_id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY,
+    reservation_id UUID NOT NULL UNIQUE,
     user_id UUID NOT NULL,
     stall_id UUID,
     event_id UUID,
@@ -21,6 +22,16 @@ CREATE TABLE IF NOT EXISTS reservation_snapshot (
     reservation_date DATE,
     confirmation_code VARCHAR(255),
     qr_code_url VARCHAR(255),
+    user_first_name VARCHAR(100),
+    user_last_name VARCHAR(100),
+    user_email VARCHAR(255),
+    user_role VARCHAR(50),
+    user_status VARCHAR(50),
+    stall_code VARCHAR(50),
+    size_category VARCHAR(50),
+    price NUMERIC(10, 2),
+    location_x FLOAT,
+    location_y FLOAT,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
