@@ -128,15 +128,15 @@ services:
       dockerfile: Dockerfile
     container_name: bookfair-reservation-service
     ports:
-      - "8086:8086"
+      - "8084:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SERVER_PORT=8086
+      - SERVER_PORT=8084
       - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-db:5432/reservation_db?stringtype=unspecified
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - APP_KAFKA_ENABLED=true
+      - APP_KAFKA_ENABLED=false
       - APP_KAFKA_USER_EVENTS_TOPIC=user-events
       - APP_KAFKA_STALL_EVENTS_TOPIC=stall-events
       - APP_KAFKA_RESERVATION_EVENTS_TOPIC=reservation-events
