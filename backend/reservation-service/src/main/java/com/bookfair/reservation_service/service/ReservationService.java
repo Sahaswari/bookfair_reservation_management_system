@@ -8,6 +8,7 @@ import com.bookfair.reservation_service.entity.StallSnapshot;
 import com.bookfair.reservation_service.entity.UserSnapshot;
 import com.bookfair.reservation_service.exception.InvalidOperationException;
 import com.bookfair.reservation_service.exception.ResourceNotFoundException;
+import com.bookfair.reservation_service.integration.StallServiceClient;
 import com.bookfair.reservation_service.messaging.ReservationEventProducer;
 import com.bookfair.reservation_service.messaging.ReservationLifecycleEvent;
 import com.bookfair.reservation_service.repository.ReservationRepository;
@@ -37,6 +38,7 @@ public class ReservationService {
     private final UserSnapshotRepository userSnapshotRepository;
     private final StallSnapshotRepository stallSnapshotRepository;
     private final ReservationEventProducer reservationEventProducer;
+    private final StallServiceClient stallServiceClient;
 
     /**
      * Get all reservations
@@ -89,22 +91,44 @@ public class ReservationService {
             throw new InvalidOperationException("Stall does not belong to the provided event");
         }
 
-        // Create reservation with PENDING status
-        Reservation reservation = new Reservation();
-        reservation.setUserId(request.getUserId());
-        reservation.setStallId(request.getStallId());
-        reservation.setEventId(request.getEventId());
-        reservation.setReservationDate(LocalDate.now());
-        reservation.setStatus(ReservationStatus.PENDING);
-        reservation.setConfirmationCode(generateConfirmationCode());
+        if (Boolean.TRUE.equals(stallSnapshot.getIsReserved())) {
+            throw new InvalidOperationException("Stall is already reserved");
+        }
+        boolean stallReservedInStallService = false;
+        try {
+            stallServiceClient.reserveStall(request.getStallId(), request.getUserId());
+            stallReservedInStallService = true;
 
-        Reservation savedReservation = reservationRepository.save(reservation);
-        log.info("Reservation created successfully with ID: {}", savedReservation.getId());
+            stallSnapshot.setIsReserved(true);
+            stallSnapshot.setReservedBy(request.getUserId());
+            stallSnapshotRepository.save(stallSnapshot);
 
-        // Publish reservation creation event to Kafka
-        publishReservationCreatedEvent(savedReservation, userSnapshot, stallSnapshot);
+            // Create reservation with PENDING status
+            Reservation reservation = new Reservation();
+            reservation.setUserId(request.getUserId());
+            reservation.setStallId(request.getStallId());
+            reservation.setEventId(request.getEventId());
+            reservation.setReservationDate(LocalDate.now());
+            reservation.setStatus(ReservationStatus.PENDING);
+            reservation.setConfirmationCode(generateConfirmationCode());
 
-        return convertToDTO(savedReservation);
+            Reservation savedReservation = reservationRepository.save(reservation);
+            log.info("Reservation created successfully with ID: {}", savedReservation.getId());
+
+            // Publish reservation creation event to Kafka
+            publishReservationCreatedEvent(savedReservation, userSnapshot, stallSnapshot);
+
+            return convertToDTO(savedReservation);
+        } catch (RuntimeException ex) {
+            if (stallReservedInStallService) {
+                try {
+                    stallServiceClient.unreserveStall(request.getStallId());
+                } catch (RuntimeException rollbackError) {
+                    log.error("Failed to roll back stall reservation for stall {}", request.getStallId(), rollbackError);
+                }
+            }
+            throw ex;
+        }
     }
 
     /**

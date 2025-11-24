@@ -39,8 +39,8 @@ public class ReservationEventListener {
                     event.getEventType(), event.getReservationId());
 
             // Find or create reservation snapshot
-            ReservationSnapshot snapshot = reservationSnapshotRepository
-                    .findById(event.getReservationId())
+                ReservationSnapshot snapshot = reservationSnapshotRepository
+                    .findByReservationId(event.getReservationId())
                     .orElseGet(() -> {
                         log.info("Creating new reservation snapshot for reservation ID: {}", 
                                 event.getReservationId());
