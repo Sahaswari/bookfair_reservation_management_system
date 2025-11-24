@@ -27,4 +27,9 @@ public interface ReservationSnapshotRepository extends JpaRepository<Reservation
      * Find reservation snapshot by status
      */
     java.util.List<ReservationSnapshot> findByStatus(String status);
+
+    /**
+     * Find a snapshot by the reservation identifier carried in Kafka events
+     */
+    java.util.Optional<ReservationSnapshot> findByReservationId(UUID reservationId);
 }

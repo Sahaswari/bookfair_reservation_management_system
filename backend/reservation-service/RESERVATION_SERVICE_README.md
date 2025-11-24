@@ -100,25 +100,16 @@ http://localhost:8086/api/reservations
 
 **Description:** Books a stall and creates a reservation with PENDING status.
 
-**Request Body:**
+**Request Body (only identifiers are required):**
 ```json
 {
   "userId": "uuid",
   "stallId": "uuid",
-  "eventId": "uuid",
-  "reservationDate": "2025-11-19",
-  "userFirstName": "John",
-  "userLastName": "Doe",
-  "userEmail": "john@example.com",
-  "userRole": "VENDOR",
-  "userStatus": "ACTIVE",
-  "stallCode": "S001",
-  "sizeCategory": "MEDIUM",
-  "price": "1500.00",
-  "locationX": 10.5,
-  "locationY": 20.3
+  "eventId": "uuid"
 }
 ```
+
+All other attributes (user profile data, stall metadata, reservation date) are resolved automatically using the local `user_snapshot` and `stall_snapshot` tables, so make sure those snapshots are already synchronized via Kafka before calling this endpoint.
 
 **Response:**
 ```json
@@ -269,8 +260,7 @@ curl -X POST http://localhost:8086/api/reservations \
   -d '{
     "userId": "uuid",
     "stallId": "uuid",
-    "eventId": "uuid",
-    "reservationDate": "2025-11-19"
+    "eventId": "uuid"
   }'
 
 # Update status

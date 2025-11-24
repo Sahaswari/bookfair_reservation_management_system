@@ -78,7 +78,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"stallId\": \"{{stallId}}\",\n  \"eventId\": \"{{eventId}}\",\n  \"reservationDate\": \"2025-12-01\",\n  \"userFirstName\": \"John\",\n  \"userLastName\": \"Doe\",\n  \"userEmail\": \"john.doe@example.com\",\n  \"userRole\": \"VENDOR\",\n  \"userStatus\": \"ACTIVE\",\n  \"stallCode\": \"S001\",\n  \"sizeCategory\": \"MEDIUM\",\n  \"price\": \"1500.00\",\n  \"locationX\": 10.5,\n  \"locationY\": 20.3\n}"
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"stallId\": \"{{stallId}}\",\n  \"eventId\": \"{{eventId}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}",
@@ -260,7 +260,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440004\",\n  \"stallId\": \"550e8400-e29b-41d4-a716-446655440005\",\n  \"eventId\": \"{{eventId}}\",\n  \"reservationDate\": \"2025-12-02\",\n  \"userFirstName\": \"Jane\",\n  \"userLastName\": \"Smith\",\n  \"userEmail\": \"jane.smith@example.com\",\n  \"userRole\": \"VENDOR\",\n  \"userStatus\": \"ACTIVE\",\n  \"stallCode\": \"S002\",\n  \"sizeCategory\": \"LARGE\",\n  \"price\": \"2500.00\",\n  \"locationX\": 15.5,\n  \"locationY\": 25.3\n}"
+          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440004\",\n  \"stallId\": \"550e8400-e29b-41d4-a716-446655440005\",\n  \"eventId\": \"{{eventId}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}",
@@ -282,7 +282,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440006\",\n  \"stallId\": \"{{stallId}}\",\n  \"eventId\": \"{{eventId}}\",\n  \"reservationDate\": \"2025-12-01\"\n}"
+          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440006\",\n  \"stallId\": \"{{stallId}}\",\n  \"eventId\": \"{{eventId}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}",

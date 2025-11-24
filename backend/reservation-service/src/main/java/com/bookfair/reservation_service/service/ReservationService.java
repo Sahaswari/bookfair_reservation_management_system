@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -77,33 +78,15 @@ public class ReservationService {
             throw new InvalidOperationException("Stall is already reserved");
         }
 
-        // Create or update user snapshot if data provided
-        if (request.getUserFirstName() != null) {
-            UserSnapshot userSnapshot = new UserSnapshot();
-            userSnapshot.setUserId(request.getUserId());
-            userSnapshot.setFirstName(request.getUserFirstName());
-            userSnapshot.setLastName(request.getUserLastName());
-            userSnapshot.setEmail(request.getUserEmail());
-            userSnapshot.setRole(request.getUserRole());
-            userSnapshot.setStatus(request.getUserStatus());
-            userSnapshotRepository.save(userSnapshot);
-        }
+        // Resolve related data from existing snapshots
+        UserSnapshot userSnapshot = userSnapshotRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User snapshot not found for ID: " + request.getUserId()));
 
-        // Create or update stall snapshot if data provided
-        if (request.getStallCode() != null) {
-            StallSnapshot stallSnapshot = new StallSnapshot();
-            stallSnapshot.setStallId(request.getStallId());
-            stallSnapshot.setEventId(request.getEventId());
-            stallSnapshot.setStallCode(request.getStallCode());
-            stallSnapshot.setSizeCategory(request.getSizeCategory());
-            if (request.getPrice() != null) {
-                stallSnapshot.setPrice(new BigDecimal(request.getPrice()));
-            }
-            stallSnapshot.setLocationX(request.getLocationX());
-            stallSnapshot.setLocationY(request.getLocationY());
-            stallSnapshot.setIsReserved(Boolean.FALSE);
-            stallSnapshot.setReservedBy(null);
-            stallSnapshotRepository.save(stallSnapshot);
+        StallSnapshot stallSnapshot = stallSnapshotRepository.findById(request.getStallId())
+                .orElseThrow(() -> new ResourceNotFoundException("Stall snapshot not found for ID: " + request.getStallId()));
+
+        if (stallSnapshot.getEventId() == null || !stallSnapshot.getEventId().equals(request.getEventId())) {
+            throw new InvalidOperationException("Stall does not belong to the provided event");
         }
 
         // Create reservation with PENDING status
@@ -111,7 +94,7 @@ public class ReservationService {
         reservation.setUserId(request.getUserId());
         reservation.setStallId(request.getStallId());
         reservation.setEventId(request.getEventId());
-        reservation.setReservationDate(request.getReservationDate());
+        reservation.setReservationDate(LocalDate.now());
         reservation.setStatus(ReservationStatus.PENDING);
         reservation.setConfirmationCode(generateConfirmationCode());
 
@@ -119,7 +102,7 @@ public class ReservationService {
         log.info("Reservation created successfully with ID: {}", savedReservation.getId());
 
         // Publish reservation creation event to Kafka
-        publishReservationCreatedEvent(savedReservation, request);
+        publishReservationCreatedEvent(savedReservation, userSnapshot, stallSnapshot);
 
         return convertToDTO(savedReservation);
     }
@@ -261,21 +244,23 @@ public class ReservationService {
     /**
      * Publish reservation created event to Kafka
      */
-    private void publishReservationCreatedEvent(Reservation reservation, CreateReservationRequest request) {
+    private void publishReservationCreatedEvent(Reservation reservation,
+                                                UserSnapshot userSnapshot,
+                                                StallSnapshot stallSnapshot) {
         try {
             // Fetch user snapshot data
-            String userFirstName = request.getUserFirstName();
-            String userLastName = request.getUserLastName();
-            String userEmail = request.getUserEmail();
-            String userRole = request.getUserRole();
-            String userStatus = request.getUserStatus();
+            String userFirstName = userSnapshot != null ? userSnapshot.getFirstName() : null;
+            String userLastName = userSnapshot != null ? userSnapshot.getLastName() : null;
+            String userEmail = userSnapshot != null ? userSnapshot.getEmail() : null;
+            String userRole = userSnapshot != null ? userSnapshot.getRole() : null;
+            String userStatus = userSnapshot != null ? userSnapshot.getStatus() : null;
 
             // Fetch stall snapshot data
-            String stallCode = request.getStallCode();
-            String sizeCategory = request.getSizeCategory();
-            BigDecimal price = request.getPrice() != null ? new BigDecimal(request.getPrice()) : null;
-            Float locationX = request.getLocationX() != null ? request.getLocationX().floatValue() : null;
-            Float locationY = request.getLocationY() != null ? request.getLocationY().floatValue() : null;
+            String stallCode = stallSnapshot != null ? stallSnapshot.getStallCode() : null;
+            String sizeCategory = stallSnapshot != null ? stallSnapshot.getSizeCategory() : null;
+            BigDecimal price = stallSnapshot != null ? stallSnapshot.getPrice() : null;
+            Float locationX = stallSnapshot != null ? stallSnapshot.getLocationX() : null;
+            Float locationY = stallSnapshot != null ? stallSnapshot.getLocationY() : null;
 
             // Build and publish event
             ReservationLifecycleEvent event = ReservationLifecycleEvent.builder()

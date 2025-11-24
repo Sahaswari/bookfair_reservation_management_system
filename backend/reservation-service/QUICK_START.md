@@ -41,10 +41,10 @@ Content-Type: application/json
 {
   "userId": "uuid",
   "stallId": "uuid",
-  "eventId": "uuid",
-  "reservationDate": "2025-12-01"
+  "eventId": "uuid"
 }
 ```
+> The service derives reservation dates and metadata automatically from snapshot tables.
 
 ### 3️⃣ Update Status (Admin: PENDING → CONFIRMED or CANCELLED)
 ```http

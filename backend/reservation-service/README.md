@@ -61,10 +61,11 @@ Content-Type: application/json
 {
   "userId": "uuid",
   "stallId": "uuid",
-  "eventId": "uuid",
-  "reservationDate": "2025-12-01"
+  "eventId": "uuid"
 }
 ```
+
+> The service resolves the reservation date (current day) and enriches the record with user/stall metadata via the local snapshot tables.
 
 #### 3️⃣ Update Status (Admin: PENDING → CONFIRMED/CANCELLED)
 ```http
@@ -167,7 +168,7 @@ curl http://localhost:8086/api/reservations
 # Create reservation
 curl -X POST http://localhost:8086/api/reservations \
   -H "Content-Type: application/json" \
-  -d '{"userId":"uuid","stallId":"uuid","eventId":"uuid","reservationDate":"2025-12-01"}'
+  -d '{"userId":"uuid","stallId":"uuid","eventId":"uuid"}'
 ```
 
 ## 🔐 Business Rules

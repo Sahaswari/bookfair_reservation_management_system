@@ -90,20 +90,11 @@ http://localhost:8086/api/reservations
 {
   "userId": "550e8400-e29b-41d4-a716-446655440001",
   "stallId": "550e8400-e29b-41d4-a716-446655440002",
-  "eventId": "550e8400-e29b-41d4-a716-446655440003",
-  "reservationDate": "2025-12-01",
-  "userFirstName": "John",
-  "userLastName": "Doe",
-  "userEmail": "john.doe@example.com",
-  "userRole": "VENDOR",
-  "userStatus": "ACTIVE",
-  "stallCode": "S001",
-  "sizeCategory": "MEDIUM",
-  "price": "1500.00",
-  "locationX": 10.5,
-  "locationY": 20.3
+  "eventId": "550e8400-e29b-41d4-a716-446655440003"
 }
 ```
+
+> Only identifiers are required. The service uses existing `user_snapshot` and `stall_snapshot` records to enrich reservation data and stamps the reservation date automatically.
 
 **Expected Response (201 Created):**
 ```json
@@ -395,7 +386,7 @@ I can provide you with a Postman collection JSON file if needed. Save this to a 
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"stallId\": \"550e8400-e29b-41d4-a716-446655440002\",\n  \"eventId\": \"550e8400-e29b-41d4-a716-446655440003\",\n  \"reservationDate\": \"2025-12-01\",\n  \"userFirstName\": \"John\",\n  \"userLastName\": \"Doe\",\n  \"userEmail\": \"john.doe@example.com\",\n  \"userRole\": \"VENDOR\",\n  \"userStatus\": \"ACTIVE\",\n  \"stallCode\": \"S001\",\n  \"sizeCategory\": \"MEDIUM\",\n  \"price\": \"1500.00\",\n  \"locationX\": 10.5,\n  \"locationY\": 20.3\n}"
+          "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"stallId\": \"550e8400-e29b-41d4-a716-446655440002\",\n  \"eventId\": \"550e8400-e29b-41d4-a716-446655440003\"\n}"
         },
         "url": {
           "raw": "http://localhost:8086/api/reservations",
