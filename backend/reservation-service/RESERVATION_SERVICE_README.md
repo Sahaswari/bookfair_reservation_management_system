@@ -47,6 +47,8 @@ Cached stall information from Stall Service:
 - `price` (DECIMAL) - Stall price
 - `location_x` (FLOAT) - X coordinate
 - `location_y` (FLOAT) - Y coordinate
+- `is_reserved` (BOOLEAN) - Mirror of stall availability flag
+- `reserved_by` (UUID) - Vendor ID currently holding the stall (if any)
 - `updated_at` (TIMESTAMP) - Last sync time
 
 ## API Endpoints
@@ -85,7 +87,9 @@ http://localhost:8086/api/reservations
       "sizeCategory": "MEDIUM",
       "price": 1500.00,
       "locationX": 10.5,
-      "locationY": 20.3
+      "locationY": 20.3,
+      "stallReserved": false,
+      "stallReservedBy": null
     }
   ]
 }

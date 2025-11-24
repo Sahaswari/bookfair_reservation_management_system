@@ -43,6 +43,12 @@ public class StallSnapshot {
     @Column(name = "location_y")
     private Float locationY;
 
+    @Column(name = "is_reserved", nullable = false)
+    private Boolean isReserved = false;
+
+    @Column(name = "reserved_by")
+    private UUID reservedBy;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

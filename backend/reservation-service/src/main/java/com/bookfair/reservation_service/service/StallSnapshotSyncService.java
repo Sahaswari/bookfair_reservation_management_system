@@ -34,6 +34,8 @@ public class StallSnapshotSyncService {
         snapshot.setPrice(event.getPrice());
         snapshot.setLocationX(event.getLocationX());
         snapshot.setLocationY(event.getLocationY());
+        snapshot.setIsReserved(Boolean.TRUE.equals(event.getIsReserved()));
+        snapshot.setReservedBy(event.getReservedBy());
 
         stallSnapshotRepository.save(snapshot);
         log.info("Stall snapshot synced successfully for stallId: {}", event.getStallId());

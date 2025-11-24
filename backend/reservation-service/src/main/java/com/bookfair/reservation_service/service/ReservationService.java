@@ -101,6 +101,8 @@ public class ReservationService {
             }
             stallSnapshot.setLocationX(request.getLocationX());
             stallSnapshot.setLocationY(request.getLocationY());
+            stallSnapshot.setIsReserved(Boolean.FALSE);
+            stallSnapshot.setReservedBy(null);
             stallSnapshotRepository.save(stallSnapshot);
         }
 
@@ -235,6 +237,8 @@ public class ReservationService {
             dto.setPrice(stallSnapshot.getPrice());
             dto.setLocationX(stallSnapshot.getLocationX());
             dto.setLocationY(stallSnapshot.getLocationY());
+            dto.setStallReserved(stallSnapshot.getIsReserved());
+            dto.setStallReservedBy(stallSnapshot.getReservedBy());
         });
 
         return dto;

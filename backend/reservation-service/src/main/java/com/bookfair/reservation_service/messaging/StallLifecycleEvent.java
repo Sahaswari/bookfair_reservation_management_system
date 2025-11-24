@@ -30,4 +30,6 @@ public class StallLifecycleEvent {
     private BigDecimal price;
     private Float locationX;
     private Float locationY;
+    private Boolean isReserved;
+    private UUID reservedBy;
 }

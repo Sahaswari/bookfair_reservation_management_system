@@ -55,6 +55,8 @@ public class StallEventPublisher {
                 .price(stall.getPrice())
                 .locationX(stall.getLocationX())
                 .locationY(stall.getLocationY())
+                .isReserved(stall.getIsReserved())
+                .reservedBy(stall.getReservedBy())
                 .build();
 
         log.info("Publishing stall event: {} for stallId: {}", eventType, stall.getId());

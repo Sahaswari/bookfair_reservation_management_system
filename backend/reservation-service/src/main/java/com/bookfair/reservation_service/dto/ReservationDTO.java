@@ -39,4 +39,6 @@ public class ReservationDTO {
     private BigDecimal price;
     private Float locationX;
     private Float locationY;
+    private Boolean stallReserved;
+    private UUID stallReservedBy;
 }
