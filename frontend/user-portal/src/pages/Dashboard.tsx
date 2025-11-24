@@ -1,16 +1,28 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, CheckCircle2, MapPin, Tag } from "lucide-react";
+import { BookOpen, CheckCircle2, Loader2, MapPin, Tag } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
+import { stallApi } from "@/lib/stallApi";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const reservationCount = 0;
   const maxReservations = 3;
-  const progressPercent = (reservationCount / maxReservations) * 100;
+
+  const reservationsQuery = useQuery({
+    queryKey: ["vendor-stalls", user?.id],
+    queryFn: () => stallApi.listStallsByVendor(user?.id || ""),
+    enabled: !!user?.id,
+  });
+
+  const reservations = reservationsQuery.data || [];
+  const reservationCount = reservations.length;
+  const progressPercent = Math.min(100, (reservationCount / maxReservations) * 100);
+  const recentReservations = reservations.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,15 +55,46 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold">{reservationCount} / {maxReservations}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold">{reservationCount} / {maxReservations}</span>
+                  {reservationsQuery.isFetching && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
                 <span className="text-sm text-muted-foreground">Stalls Reserved</span>
               </div>
               <Progress value={progressPercent} className="h-2" />
-              {reservationCount === 0 && (
+
+              {reservationsQuery.isLoading && (
+                <p className="text-sm text-muted-foreground">Loading your reservations...</p>
+              )}
+
+              {!reservationsQuery.isLoading && reservationCount === 0 && (
                 <div className="bg-muted rounded-lg p-4">
                   <p className="text-sm text-muted-foreground">
                     You haven't reserved any stalls yet. Start by browsing available stalls on our interactive map.
                   </p>
+                </div>
+              )}
+
+              {!reservationsQuery.isLoading && reservationCount > 0 && (
+                <div className="space-y-3">
+                  {recentReservations.map((stall) => (
+                    <div
+                      key={stall.id}
+                      className="flex items-center justify-between rounded-lg border p-3 bg-card"
+                    >
+                      <div>
+                        <p className="font-semibold">Stall {stall.stallCode}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {stall.eventName ?? "Event to be assigned"}
+                        </p>
+                      </div>
+                      <Badge variant={stall.isReserved ? "secondary" : "outline"}>
+                        {stall.isReserved ? "Reserved" : "Released"}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -122,7 +165,7 @@ export default function Dashboard() {
           </Card>
 
           {/* CTA */}
-          {reservationCount === 0 && (
+          {!reservationsQuery.isLoading && reservationCount === 0 && (
             <div className="text-center py-8">
               <Button variant="hero" size="lg" asChild>
                 <Link to="/reserve">Start Reserving Stalls</Link>

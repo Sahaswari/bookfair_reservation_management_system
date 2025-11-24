@@ -3,14 +3,14 @@ const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
 const ACCESS_EXPIRES_AT_KEY = "auth.accessExpiresAt";
 
-type ApiResponse<T> = {
+export type ApiResponse<T> = {
   success: boolean;
   message: string;
   data: T;
   timestamp: string;
 };
 
-type AuthTokens = {
+export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number; // milliseconds
