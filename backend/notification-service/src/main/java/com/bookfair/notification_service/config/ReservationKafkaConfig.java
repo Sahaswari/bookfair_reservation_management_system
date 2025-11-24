@@ -49,7 +49,7 @@ public class ReservationKafkaConfig {
         JsonDeserializer<ReservationLifecycleEvent> deserializer = 
             new JsonDeserializer<>(ReservationLifecycleEvent.class);
         deserializer.addTrustedPackages("*");
-        deserializer.setRemoveTypeHeaders(false);
+        deserializer.setRemoveTypeHeaders(true);
         deserializer.setUseTypeMapperForKey(false);
         
         return new DefaultKafkaConsumerFactory<>(consumerProps, new StringDeserializer(), deserializer);
