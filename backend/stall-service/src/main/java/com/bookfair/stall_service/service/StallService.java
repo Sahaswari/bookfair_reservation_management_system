@@ -1,6 +1,7 @@
 package com.bookfair.stall_service.service;
 
 import com.bookfair.stall_service.dto.CreateStallRequest;
+import com.bookfair.stall_service.dto.GenerateStallLayoutRequest;
 import com.bookfair.stall_service.dto.StallDTO;
 import com.bookfair.stall_service.entity.Event;
 import com.bookfair.stall_service.entity.Stall;
@@ -15,9 +16,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -57,6 +64,7 @@ public class StallService {
         stall.setLocationX(request.getLocationX());
         stall.setLocationY(request.getLocationY());
         stall.setIsReserved(false);
+        stall.setReservedBy(null);
 
         Stall savedStall = stallRepository.save(stall);
         log.info("Stall created successfully with ID: {}", savedStall.getId());
@@ -188,6 +196,7 @@ public class StallService {
 
         stall.reserve(vendorId);
         Stall updatedStall = stallRepository.save(stall);
+        stallEventPublisher.publishStallUpdated(updatedStall);
         
         log.info("Stall reserved successfully");
         return convertToDTO(updatedStall);
@@ -208,6 +217,7 @@ public class StallService {
 
         stall.unreserve();
         Stall updatedStall = stallRepository.save(stall);
+        stallEventPublisher.publishStallUpdated(updatedStall);
         
         log.info("Stall unreserved successfully");
         return convertToDTO(updatedStall);
@@ -244,6 +254,74 @@ public class StallService {
     }
 
     /**
+     * Generate a batch of stalls for an event using a predefined layout.
+     */
+    public List<StallDTO> generateLayout(GenerateStallLayoutRequest request) {
+        UUID eventId = Optional.ofNullable(request.getEventId())
+                .orElseThrow(() -> new IllegalArgumentException("eventId is required"));
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found with ID: " + eventId));
+
+        if (!stallRepository.findByEventId(eventId).isEmpty()) {
+            throw new IllegalStateException("Stalls have already been generated for this event");
+        }
+
+        float startX = 0f;
+        float startY = 0f;
+        float columnSpacing = 2f;
+        float rowSpacing = 2f;
+        int rowsPerColumn = 10;
+        boolean gapBetweenGroups = true;
+
+        String codePrefix = deriveCodePrefix(event, null);
+        Map<StallSize, AtomicInteger> counters = new EnumMap<>(StallSize.class);
+
+        int columnIndex = 0;
+        int rowIndex = 0;
+
+        List<StallDTO> created = new ArrayList<>();
+
+        for (StallLayoutConfiguration config : DEFAULT_LAYOUT_CONFIGURATION) {
+            log.info("Generating {} {} stalls for event {}", config.count(), config.size(), event.getName());
+
+            if (gapBetweenGroups && (columnIndex > 0 || rowIndex > 0)) {
+                rowIndex = 0;
+                columnIndex++;
+            }
+
+            for (int i = 0; i < config.count(); i++) {
+                String stallCode = generateNextStallCode(codePrefix, config.size(), counters);
+
+                float x = startX + (columnIndex * columnSpacing);
+                float y = startY + (rowIndex * rowSpacing);
+
+                Stall stall = new Stall();
+                stall.setEvent(event);
+                stall.setStallCode(stallCode);
+                stall.setSizeCategory(config.size());
+                stall.setPrice(normalizePrice(config.price()));
+                stall.setLocationX(x);
+                stall.setLocationY(y);
+                stall.setIsReserved(Boolean.FALSE);
+                stall.setReservedBy(null);
+
+                Stall savedStall = stallRepository.save(stall);
+                stallEventPublisher.publishStallCreated(savedStall);
+                created.add(convertToDTO(savedStall));
+
+                rowIndex++;
+                if (rowIndex >= rowsPerColumn) {
+                    rowIndex = 0;
+                    columnIndex++;
+                }
+            }
+        }
+
+        return created;
+    }
+
+    /**
      * Convert Stall entity to DTO
      */
     private StallDTO convertToDTO(Stall stall) {
@@ -269,4 +347,65 @@ public class StallService {
         
         return dto;
     }
+
+    private String deriveCodePrefix(Event event, String requestedPrefix) {
+        String base = requestedPrefix != null && !requestedPrefix.isBlank()
+                ? requestedPrefix
+                : event.getName();
+
+        String normalized = Normalizer.normalize(base, Normalizer.Form.NFD)
+                .replaceAll("[^A-Za-z0-9]", "")
+                .toUpperCase();
+
+        if (normalized.isBlank()) {
+            normalized = "EVT";
+        }
+
+        return normalized.length() > 3 ? normalized.substring(0, 3) : normalized;
+    }
+
+    private String generateNextStallCode(String prefix, StallSize size, Map<StallSize, AtomicInteger> counters) {
+        AtomicInteger sequence = counters.computeIfAbsent(size, key -> new AtomicInteger(0));
+        String code;
+
+        do {
+            int next = sequence.incrementAndGet();
+            code = buildStallCode(prefix, size, next);
+        } while (stallRepository.existsByStallCode(code));
+
+        return code;
+    }
+
+    private String buildStallCode(String prefix, StallSize size, int sequence) {
+        String sizeToken = size.name().substring(0, 1);
+        String numeric = String.format("%03d", sequence);
+        String base = (prefix + sizeToken + numeric).toUpperCase();
+
+        if (base.length() <= 10) {
+            return base;
+        }
+
+        int maxPrefixLength = Math.max(0, 10 - (sizeToken.length() + numeric.length()));
+        String trimmedPrefix = prefix.substring(0, Math.min(prefix.length(), maxPrefixLength));
+
+        if (trimmedPrefix.isEmpty()) {
+            String fallback = sizeToken + numeric;
+            return fallback.substring(0, Math.min(10, fallback.length()));
+        }
+
+        String combined = trimmedPrefix + sizeToken + numeric;
+        return combined.substring(0, Math.min(10, combined.length()));
+    }
+
+    private BigDecimal normalizePrice(BigDecimal price) {
+        return price != null ? price : BigDecimal.ZERO;
+    }
+
+    private static final List<StallLayoutConfiguration> DEFAULT_LAYOUT_CONFIGURATION = List.of(
+            new StallLayoutConfiguration(StallSize.SMALL, 15, new BigDecimal("25000.00")),
+            new StallLayoutConfiguration(StallSize.MEDIUM, 10, new BigDecimal("50000.00")),
+            new StallLayoutConfiguration(StallSize.LARGE, 10, new BigDecimal("120000.00"))
+    );
+
+    private record StallLayoutConfiguration(StallSize size, int count, BigDecimal price) {}
 }

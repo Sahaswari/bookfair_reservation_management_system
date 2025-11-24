@@ -2,6 +2,7 @@ package com.bookfair.stall_service.controller;
 
 import com.bookfair.stall_service.dto.ApiResponse;
 import com.bookfair.stall_service.dto.CreateStallRequest;
+import com.bookfair.stall_service.dto.GenerateStallLayoutRequest;
 import com.bookfair.stall_service.dto.StallDTO;
 import com.bookfair.stall_service.entity.StallSize;
 import com.bookfair.stall_service.service.StallService;
@@ -205,6 +206,24 @@ public class StallController {
             return ResponseEntity.ok(ApiResponse.success("Stall deleted successfully", null));
         } catch (Exception e) {
             log.error("Error deleting stall", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * Generate stalls for an event using the predefined layout template.
+     * POST /api/stalls/layout
+     */
+    @PostMapping("/layout")
+        public ResponseEntity<ApiResponse<List<StallDTO>>> generateLayout(
+            @Valid @RequestBody GenerateStallLayoutRequest request) {
+        try {
+            List<StallDTO> stalls = stallService.generateLayout(request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Stall layout generated successfully", stalls));
+        } catch (Exception e) {
+            log.error("Error generating stall layout", e);
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         }
