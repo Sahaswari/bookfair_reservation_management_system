@@ -17,6 +17,7 @@ import { Info, X, RefreshCw, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { stallApi, type Stall, type StallSizeCategory, type Event } from "@/lib/stallApi";
+import { reservationApi } from "@/lib/reservationApi";
 import { toast } from "sonner";
 type UiStall = Stall & { status: "available" | "selected" | "reserved" };
 
@@ -86,8 +87,15 @@ export default function Reserve() {
     mutationFn: async () => {
       if (!user?.id) throw new Error("User not found");
       if (!selectedEventId) throw new Error("No event selected");
-      const tasks = selectedStalls.map((stallId) => stallApi.reserveStall(stallId, user.id));
-      await Promise.all(tasks);
+      await Promise.all(
+        selectedStalls.map((stallId) =>
+          reservationApi.createReservation({
+            userId: user.id,
+            stallId,
+            eventId: selectedEventId,
+          }),
+        ),
+      );
     },
     onSuccess: () => {
       toast.success("Reservation successful");
