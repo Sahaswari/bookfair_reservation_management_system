@@ -31,6 +31,7 @@ import {
   type StallSizeCategory,
   stallApi,
 } from "@/lib/stallApi";
+import { reservationApi, type Reservation } from "@/lib/reservationApi";
 import { useEmployeeAuth } from "@/hooks/useEmployeeAuth";
 
 const sizeColors: Record<StallSizeCategory, string> = {
@@ -122,8 +123,15 @@ export default function StallManagement() {
     enabled: !!selectedStallId,
   });
 
+  const reservationsByEventQuery = useQuery({
+    queryKey: ["reservations", selectedEventId],
+    queryFn: () => reservationApi.getReservationsByEvent(selectedEventId!),
+    enabled: !!selectedEventId,
+  });
+
   const stalls = stallsQuery.data || [];
   const availableStalls = availableStallsQuery.data || [];
+  const reservationsForEvent = reservationsByEventQuery.data || [];
 
   const filteredStalls = useMemo(() => {
     const normalized = searchQuery.trim().toLowerCase();
@@ -146,6 +154,15 @@ export default function StallManagement() {
 
   const selectedStall =
     selectedStallDetailsQuery.data ?? filteredStalls.find((stall) => stall.id === selectedStallId) ?? null;
+
+  const activeReservation: Reservation | null = useMemo(() => {
+    if (!selectedStall) return null;
+    return (
+      reservationsForEvent.find(
+        (reservation) => reservation.stallId === selectedStall.id && reservation.status !== "CANCELLED",
+      ) ?? null
+    );
+  }, [reservationsForEvent, selectedStall?.id]);
 
   useEffect(() => {
     if (selectedStall) {
@@ -207,24 +224,37 @@ export default function StallManagement() {
   });
 
   const reserveMutation = useMutation({
-    mutationFn: ({ id, vendor }: { id: string; vendor: string }) => stallApi.reserveStall(id, vendor),
+    mutationFn: ({ stallId, vendorId, eventId }: { stallId: string; vendorId: string; eventId: string }) =>
+      reservationApi.createReservation({
+        userId: vendorId,
+        stallId,
+        eventId,
+      }),
     onSuccess: () => {
       toast({ title: "Stall reserved" });
       queryClient.invalidateQueries({ queryKey: ["stalls"] });
       queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
       queryClient.invalidateQueries({ queryKey: ["stall"] });
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      if (selectedEventId) {
+        queryClient.invalidateQueries({ queryKey: ["reservations", selectedEventId] });
+      }
       setVendorId("");
     },
     onError: () => toast({ title: "Reservation failed", variant: "destructive" }),
   });
 
   const unreserveMutation = useMutation({
-    mutationFn: (id: string) => stallApi.unreserveStall(id),
+    mutationFn: (reservationId: string) => reservationApi.updateStatus(reservationId, "CANCELLED"),
     onSuccess: () => {
       toast({ title: "Stall released" });
       queryClient.invalidateQueries({ queryKey: ["stalls"] });
       queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
       queryClient.invalidateQueries({ queryKey: ["stall"] });
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      if (selectedEventId) {
+        queryClient.invalidateQueries({ queryKey: ["reservations", selectedEventId] });
+      }
     },
     onError: () => toast({ title: "Could not release stall", variant: "destructive" }),
   });
@@ -284,7 +314,7 @@ export default function StallManagement() {
       toast({ title: "Vendor ID required to reserve", variant: "destructive" });
       return;
     }
-    reserveMutation.mutate({ id: selectedStall.id, vendor: vendorId.trim() });
+    reserveMutation.mutate({ stallId: selectedStall.id, vendorId: vendorId.trim(), eventId: selectedStall.eventId });
   };
 
   const handleUpdateStall = () => {
@@ -726,8 +756,8 @@ export default function StallManagement() {
                         <Button
                           variant="outline"
                           className="flex-1"
-                          onClick={() => selectedStall && unreserveMutation.mutate(selectedStall.id)}
-                          disabled={unreserveMutation.isPending || !selectedStall.isReserved}
+                          onClick={() => activeReservation && unreserveMutation.mutate(activeReservation.id)}
+                          disabled={unreserveMutation.isPending || !activeReservation}
                         >
                           {unreserveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Release

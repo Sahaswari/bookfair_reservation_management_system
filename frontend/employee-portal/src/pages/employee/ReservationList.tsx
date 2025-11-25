@@ -16,7 +16,6 @@ import { Search, XCircle, ChevronLeft, ChevronRight, Loader2, CheckCircle } from
 import Header from "@/components/Header";
 import { useEmployeeAuth } from "@/hooks/useEmployeeAuth";
 import { reservationApi } from "@/lib/reservationApi";
-import { stallApi } from "@/lib/stallApi";
 import { useToast } from "@/components/ui/use-toast";
 
 const ITEMS_PER_PAGE = 10;
@@ -72,13 +71,13 @@ export default function ReservationList() {
     onError: () => toast({ title: "Failed to confirm reservation", variant: "destructive" }),
   });
 
-  const unreserveMutation = useMutation({
-    mutationFn: (id: string) => stallApi.unreserveStall(id), // This might need to be reservationApi.cancel? But keeping for now or replacing?
+  const cancelReservationMutation = useMutation({
+    mutationFn: (id: string) => reservationApi.updateStatus(id, "CANCELLED"),
     onSuccess: () => {
-      toast({ title: "Reservation released" });
+      toast({ title: "Reservation cancelled" });
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
     },
-    onError: () => toast({ title: "Failed to release reservation", variant: "destructive" }),
+    onError: () => toast({ title: "Failed to cancel reservation", variant: "destructive" }),
   });
 
   if (!isAuthenticated) {
@@ -124,7 +123,7 @@ export default function ReservationList() {
             <CardHeader>
               <CardTitle>All Reservations</CardTitle>
               <CardDescription>
-                {filteredReservations.length} reserved stalls
+                {filteredReservations.length} reservations tracked via reservation service
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -198,17 +197,10 @@ export default function ReservationList() {
                               variant="ghost"
                               size="icon"
                               title="Cancel Reservation"
-                              // Note: unreserveMutation uses stallApi.unreserveStall(id). But here id is reservationId.
-                              // stallApi expects stallId.
-                              // We should probably use reservationApi to update status to CANCELLED?
-                              // But adhering to "without changuing othes", maybe I should disable cancel for now or leave it?
-                              // User said "do this one only" referring to done button.
-                              // I'll leave cancel but it might break if IDs differ.
-                              // Stall ID is reservation.stallId.
-                              onClick={() => unreserveMutation.mutate(reservation.stallId)}
-                              disabled={unreserveMutation.isPending}
+                              onClick={() => cancelReservationMutation.mutate(reservation.id)}
+                              disabled={cancelReservationMutation.isPending}
                             >
-                              {unreserveMutation.isPending ? (
+                              {cancelReservationMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <XCircle className="h-4 w-4 text-destructive" />
