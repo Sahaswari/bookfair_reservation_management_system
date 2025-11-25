@@ -7,22 +7,40 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, CheckCircle2, Loader2, MapPin, Tag } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
-import { stallApi } from "@/lib/stallApi";
+import { reservationApi, type Reservation, type ReservationStatus } from "@/lib/reservationApi";
+
+const statusStyles: Record<ReservationStatus, { label: string; className: string }> = {
+  PENDING: {
+    label: "Pending",
+    className: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200",
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    className: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    className: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200",
+  },
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
   const maxReservations = 3;
 
   const reservationsQuery = useQuery({
-    queryKey: ["vendor-stalls", user?.id],
-    queryFn: () => stallApi.listStallsByVendor(user?.id || ""),
+    queryKey: ["reservations", user?.id],
+    queryFn: () => reservationApi.listReservationsByUser(user!.id),
     enabled: !!user?.id,
   });
 
-  const reservations = reservationsQuery.data || [];
-  const reservationCount = reservations.length;
+  const reservations = (reservationsQuery.data || []) as Reservation[];
+  const activeReservations = reservations.filter((reservation) => reservation.status !== "CANCELLED");
+  const reservationCount = activeReservations.length;
   const progressPercent = Math.min(100, (reservationCount / maxReservations) * 100);
-  const recentReservations = reservations.slice(0, 3);
+  const recentReservations = [...reservations]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,22 +97,28 @@ export default function Dashboard() {
 
               {!reservationsQuery.isLoading && reservationCount > 0 && (
                 <div className="space-y-3">
-                  {recentReservations.map((stall) => (
-                    <div
-                      key={stall.id}
-                      className="flex items-center justify-between rounded-lg border p-3 bg-card"
-                    >
-                      <div>
-                        <p className="font-semibold">Stall {stall.stallCode}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {stall.eventName ?? "Event to be assigned"}
-                        </p>
+                  {recentReservations.map((reservation) => {
+                    const status = statusStyles[reservation.status] ?? statusStyles.PENDING;
+                    const priceValue = Number(reservation.price ?? 0).toLocaleString();
+                    const eventSnippet = reservation.eventId ? reservation.eventId.slice(0, 8) : "N/A";
+
+                    return (
+                      <div
+                        key={reservation.id}
+                        className="flex items-center justify-between rounded-lg border p-3 bg-card"
+                      >
+                        <div>
+                          <p className="font-semibold">Stall {reservation.stallCode ?? "N/A"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Event: {eventSnippet} • LKR {priceValue}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className={status.className}>
+                          {status.label}
+                        </Badge>
                       </div>
-                      <Badge variant={stall.isReserved ? "secondary" : "outline"}>
-                        {stall.isReserved ? "Reserved" : "Released"}
-                      </Badge>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

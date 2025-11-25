@@ -39,4 +39,13 @@ export const reservationApi = {
     });
     return res.data;
   },
+
+  async listReservationsByUser(userId: string) {
+    const res = await apiFetch<Reservation[]>(`/api/reservations/user/${userId}`);
+    return res.data;
+  },
+
+  async deleteReservation(reservationId: string) {
+    await apiFetch(`/api/reservations/${reservationId}`, { method: "DELETE" });
+  },
 };

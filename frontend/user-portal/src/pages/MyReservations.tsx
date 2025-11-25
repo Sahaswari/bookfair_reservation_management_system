@@ -6,31 +6,59 @@ import { Badge } from "@/components/ui/badge";
 import { Download, MapPin, Calendar, AlertCircle, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
-import { stallApi, type Stall } from "@/lib/stallApi";
+import { stallApi, type Event } from "@/lib/stallApi";
+import { reservationApi, type Reservation, type ReservationStatus } from "@/lib/reservationApi";
+import { toast } from "sonner";
+
+const statusStyles: Record<ReservationStatus, { label: string; className: string }> = {
+  PENDING: {
+    label: "Pending",
+    className: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200",
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    className: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    className: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200",
+  },
+};
 
 export default function MyReservations() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const reservationsQuery = useQuery({
-    queryKey: ["vendor-stalls", user?.id],
-    queryFn: () => stallApi.listStallsByVendor(user?.id || ""),
+    queryKey: ["reservations", user?.id],
+    queryFn: () => reservationApi.listReservationsByUser(user!.id),
     enabled: !!user?.id,
   });
 
-  const unreserveMutation = useMutation({
-    mutationFn: (stallId: string) => stallApi.unreserveStall(stallId),
+  const eventsQuery = useQuery({
+    queryKey: ["events"],
+    queryFn: stallApi.listEvents,
+  });
+
+  const eventsById = useMemo(() => {
+    const map = new Map<string, Event>();
+    (eventsQuery.data || []).forEach((event) => map.set(event.id, event));
+    return map;
+  }, [eventsQuery.data]);
+
+  const cancelReservationMutation = useMutation({
+    mutationFn: (reservationId: string) => reservationApi.deleteReservation(reservationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-stalls", user?.id] });
+      toast.success("Reservation cancelled");
+      queryClient.invalidateQueries({ queryKey: ["reservations", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
+    },
+    onError: (error: unknown) => {
+      toast.error((error as Error)?.message || "Unable to cancel reservation");
     },
   });
 
-  const reservations = useMemo(() => {
-    const stalls = reservationsQuery.data || [];
-    if (stalls.length === 0) return [] as Stall[];
-    return stalls;
-  }, [reservationsQuery.data]);
+  const reservations = reservationsQuery.data || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,55 +98,76 @@ export default function MyReservations() {
             <>
               {/* Reservation Cards */}
               <div className="space-y-4">
-                {reservations.map((stall) => (
-                  <Card key={stall.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>Stall {stall.stallCode}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
-                            <Calendar className="h-4 w-4" />
-                            Event: {stall.eventName ?? "—"}
-                          </CardDescription>
+                {reservations.map((reservation: Reservation) => {
+                  const status = statusStyles[reservation.status] ?? statusStyles.PENDING;
+                  const eventInfo = eventsById.get(reservation.eventId);
+                  const isConfirmed = reservation.status === "CONFIRMED";
+                  const canDownloadPass = Boolean(isConfirmed && reservation.qrCodeUrl);
+                  const priceValue = Number(reservation.price ?? 0);
+                  const priceDisplay = priceValue.toLocaleString();
+
+                  return (
+                    <Card key={reservation.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle>Stall {reservation.stallCode ?? "N/A"}</CardTitle>
+                            <CardDescription className="flex items-center gap-2 mt-1">
+                              <Calendar className="h-4 w-4" />
+                              Event: {eventInfo?.name ?? reservation.eventId}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="outline" className={status.className}>
+                            {status.label}
+                          </Badge>
                         </div>
-                        <Badge variant={stall.isReserved ? "secondary" : "outline"}>
-                          {stall.isReserved ? "Reserved" : "Released"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-2">Size</p>
-                          <Badge variant="outline">{stall.sizeCategory}</Badge>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">Size</p>
+                            <Badge variant="outline">{reservation.sizeCategory ?? "--"}</Badge>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">Amount</p>
+                            <p className="text-2xl font-bold text-primary">LKR {priceDisplay}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-2">Amount</p>
-                          <p className="text-2xl font-bold text-primary">
-                            LKR {stall.price.toLocaleString()}
-                          </p>
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            disabled={!canDownloadPass}
+                            asChild={canDownloadPass}
+                          >
+                            {canDownloadPass ? (
+                              <a href={reservation.qrCodeUrl!} target="_blank" rel="noreferrer">
+                                <Download className="h-4 w-4 mr-2" />
+                                Download QR Pass
+                              </a>
+                            ) : (
+                              <span className="flex items-center justify-center">
+                                <Download className="h-4 w-4 mr-2" />
+                                Download QR Pass
+                              </span>
+                            )}
+                          </Button>
+                          <Button
+                            variant="default"
+                            className="flex-1"
+                            onClick={() => cancelReservationMutation.mutate(reservation.id)}
+                            disabled={cancelReservationMutation.isPending || reservation.status === "CANCELLED"}
+                          >
+                            {cancelReservationMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : null}
+                            {reservation.status === "CANCELLED" ? "Cancelled" : "Cancel Reservation"}
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <Button variant="outline" className="flex-1">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download QR Pass
-                        </Button>
-                        <Button
-                          variant="default"
-                          className="flex-1"
-                          onClick={() => unreserveMutation.mutate(stall.id)}
-                          disabled={unreserveMutation.isPending}
-                        >
-                          {unreserveMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : null}
-                          Release
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
 
               {/* Cancellation Policy */}

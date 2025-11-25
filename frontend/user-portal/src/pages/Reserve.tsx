@@ -100,7 +100,7 @@ export default function Reserve() {
     onSuccess: () => {
       toast.success("Reservation successful");
       queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
-      queryClient.invalidateQueries({ queryKey: ["vendor-stalls", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["reservations", user?.id] });
       navigate("/success", { state: { stalls: selectedStallsData, totalPrice } });
     },
     onError: (err) => {
