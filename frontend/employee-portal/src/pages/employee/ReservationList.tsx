@@ -123,6 +123,7 @@ export default function ReservationList() {
                       <TableHead>Event</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead>Updated</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -161,6 +162,11 @@ export default function ReservationList() {
                           LKR {reservation.price.toLocaleString()}
                         </TableCell>
                         <TableCell>{formatDate(reservation.updatedAt ?? reservation.createdAt)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Confirmed
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="icon" title="View Details" disabled>
