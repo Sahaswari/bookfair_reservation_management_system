@@ -1,13 +1,16 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, CheckCircle2, Loader2, MapPin, Tag } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { reservationApi, type Reservation, type ReservationStatus } from "@/lib/reservationApi";
+import { stallApi, type Event } from "@/lib/stallApi";
 
 const statusStyles: Record<ReservationStatus, { label: string; className: string }> = {
   PENDING: {
@@ -27,6 +30,21 @@ const statusStyles: Record<ReservationStatus, { label: string; className: string
 export default function Dashboard() {
   const { user } = useAuth();
   const maxReservations = 3;
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  const eventsQuery = useQuery({
+    queryKey: ["events"],
+    queryFn: stallApi.listEvents,
+  });
+
+  const events = (eventsQuery.data || []) as Event[];
+
+  useEffect(() => {
+    if (events.length === 0) return;
+    if (!selectedEventId || !events.some((event) => event.id === selectedEventId)) {
+      setSelectedEventId(events[0].id);
+    }
+  }, [events, selectedEventId]);
 
   const reservationsQuery = useQuery({
     queryKey: ["reservations", user?.id],
@@ -36,9 +54,22 @@ export default function Dashboard() {
 
   const reservations = (reservationsQuery.data || []) as Reservation[];
   const activeReservations = reservations.filter((reservation) => reservation.status !== "CANCELLED");
-  const reservationCount = activeReservations.length;
+  const selectedEvent = useMemo(
+    () => events.find((event) => event.id === selectedEventId) ?? null,
+    [events, selectedEventId],
+  );
+  const isEventsLoading = eventsQuery.isLoading;
+  const hasEvents = events.length > 0;
+  const eventSelectionDisabled = isEventsLoading || !hasEvents;
+
+  const reservationsForSelectedEvent = useMemo(() => {
+    if (!selectedEventId) return [];
+    return activeReservations.filter((reservation) => reservation.eventId === selectedEventId);
+  }, [activeReservations, selectedEventId]);
+
+  const reservationCount = reservationsForSelectedEvent.length;
   const progressPercent = Math.min(100, (reservationCount / maxReservations) * 100);
-  const recentReservations = [...reservations]
+  const recentReservations = [...reservationsForSelectedEvent]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
 
@@ -50,15 +81,53 @@ export default function Dashboard() {
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Welcome Card */}
           <Card className="gradient-warm text-primary-foreground">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">Welcome to CIBF 2025!</h1>
+                  <h1 className="text-3xl font-bold mb-2">
+                    {selectedEvent ? `Welcome to ${selectedEvent.name}!` : "Welcome to the Book Fair!"}
+                  </h1>
                   <p className="text-primary-foreground/90">
-                    Manage your stall reservations and get ready for Sri Lanka's biggest book fair.
+                    {selectedEvent
+                      ? `Manage your stall reservations and updates for ${selectedEvent.name}.`
+                      : "Select an event to manage your stall reservations and stay updated."}
                   </p>
+                  {selectedEvent && (
+                    <p className="text-sm text-primary-foreground/80 mt-2">
+                      {selectedEvent.location} | {selectedEvent.startDate} - {selectedEvent.endDate}
+                    </p>
+                  )}
+                  {!hasEvents && !isEventsLoading && (
+                    <p className="text-sm text-primary-foreground/80 mt-2">
+                      No events are available yet. Please check back soon.
+                    </p>
+                  )}
                 </div>
-                <BookOpen className="h-12 w-12 opacity-90" />
+                <div className="w-full md:w-64 space-y-2">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-primary-foreground/80">
+                    <BookOpen className="h-4 w-4" />
+                    <span>Select event</span>
+                  </div>
+                  <Select
+                    value={selectedEventId ?? undefined}
+                    onValueChange={(value) => setSelectedEventId(value)}
+                    disabled={eventSelectionDisabled}
+                  >
+                    <SelectTrigger className="bg-white/10 border-white/30 text-primary-foreground">
+                      <SelectValue placeholder={isEventsLoading ? "Loading events..." : "Choose event"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.name} ({event.year})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {eventsQuery.isError && (
+                    <p className="text-xs text-red-100">Unable to load events. Please refresh.</p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -68,58 +137,76 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle>Reservation Status</CardTitle>
               <CardDescription>
-                You can reserve up to {maxReservations} stalls
+                {isEventsLoading
+                  ? "Loading events..."
+                  : selectedEvent
+                    ? `You can reserve up to ${maxReservations} stalls for ${selectedEvent.name}.`
+                    : "Select an event to view reservation limits."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold">{reservationCount} / {maxReservations}</span>
-                  {reservationsQuery.isFetching && (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              {selectedEvent ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold">{reservationCount} / {maxReservations}</span>
+                      {reservationsQuery.isFetching && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedEvent.name} | Stalls Reserved
+                    </span>
+                  </div>
+                  <Progress value={progressPercent} className="h-2" />
+
+                  {reservationsQuery.isLoading && (
+                    <p className="text-sm text-muted-foreground">Loading your reservations...</p>
                   )}
-                </div>
-                <span className="text-sm text-muted-foreground">Stalls Reserved</span>
-              </div>
-              <Progress value={progressPercent} className="h-2" />
 
-              {reservationsQuery.isLoading && (
-                <p className="text-sm text-muted-foreground">Loading your reservations...</p>
-              )}
+                  {!reservationsQuery.isLoading && reservationCount === 0 && (
+                    <div className="bg-muted rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground">
+                        You haven't reserved any stalls for {selectedEvent.name} yet. Start by browsing the map to secure
+                        your preferred spots.
+                      </p>
+                    </div>
+                  )}
 
-              {!reservationsQuery.isLoading && reservationCount === 0 && (
-                <div className="bg-muted rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground">
-                    You haven't reserved any stalls yet. Start by browsing available stalls on our interactive map.
-                  </p>
-                </div>
-              )}
+                  {!reservationsQuery.isLoading && reservationCount > 0 && (
+                    <div className="space-y-3">
+                      {recentReservations.map((reservation) => {
+                        const status = statusStyles[reservation.status] ?? statusStyles.PENDING;
+                        const priceValue = Number(reservation.price ?? 0).toLocaleString();
 
-              {!reservationsQuery.isLoading && reservationCount > 0 && (
-                <div className="space-y-3">
-                  {recentReservations.map((reservation) => {
-                    const status = statusStyles[reservation.status] ?? statusStyles.PENDING;
-                    const priceValue = Number(reservation.price ?? 0).toLocaleString();
-                    const eventSnippet = reservation.eventId ? reservation.eventId.slice(0, 8) : "N/A";
-
-                    return (
-                      <div
-                        key={reservation.id}
-                        className="flex items-center justify-between rounded-lg border p-3 bg-card"
-                      >
-                        <div>
-                          <p className="font-semibold">Stall {reservation.stallCode ?? "N/A"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Event: {eventSnippet} • LKR {priceValue}
-                          </p>
-                        </div>
-                        <Badge variant="outline" className={status.className}>
-                          {status.label}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                </div>
+                        return (
+                          <div
+                            key={reservation.id}
+                            className="flex items-center justify-between rounded-lg border p-3 bg-card"
+                          >
+                            <div>
+                              <p className="font-semibold">Stall {reservation.stallCode ?? "N/A"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {selectedEvent.name} | LKR {priceValue}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className={status.className}>
+                              {status.label}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isEventsLoading
+                    ? "Loading events..."
+                    : hasEvents
+                      ? "Select an event from the dropdown above to view reservation stats."
+                      : "No events available to display yet."}
+                </p>
               )}
             </CardContent>
           </Card>

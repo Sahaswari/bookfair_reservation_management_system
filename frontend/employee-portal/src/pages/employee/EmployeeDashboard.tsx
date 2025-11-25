@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Area,
   AreaChart,
@@ -28,35 +29,42 @@ export default function EmployeeDashboard() {
   const { isAuthenticated } = useEmployeeAuth();
   const stallsQuery = useQuery({ queryKey: ["all-stalls"], queryFn: stallApi.listStalls });
   const eventsQuery = useQuery({ queryKey: ["dashboard-events"], queryFn: stallApi.listEvents });
+  const [selectedEventId, setSelectedEventId] = useState<string>("ALL");
 
   const stalls = stallsQuery.data ?? [];
   const events = eventsQuery.data ?? [];
   const isLoading = stallsQuery.isLoading || eventsQuery.isLoading;
+  const selectedEvent = selectedEventId === "ALL" ? null : events.find((event) => event.id === selectedEventId) ?? null;
+  const filteredStalls = useMemo(() => {
+    if (!selectedEvent) return stalls;
+    return stalls.filter((stall) => stall.eventId === selectedEvent.id);
+  }, [stalls, selectedEvent]);
 
-  const { totalStalls, reservedStalls, availableStalls, sizeStats, pieData, eventOccupancyData } = useMemo(() => {
-    const defaultStats = {
-      totalStalls: 0,
-      reservedStalls: 0,
-      availableStalls: 0,
-      sizeStats: {
-        SMALL: { total: 0, reserved: 0 },
-        MEDIUM: { total: 0, reserved: 0 },
-        LARGE: { total: 0, reserved: 0 },
-      },
-      pieData: [
-        { name: "Reserved", value: 0, fill: RESERVED_COLOR },
-        { name: "Available", value: 0, fill: MUTED_COLOR },
-      ],
-      eventOccupancyData: events.map((event) => ({
-        name: event.name,
-        total: 0,
-        reserved: 0,
-        occupancy: 0,
-      })),
-    } as const;
+  useEffect(() => {
+    if (selectedEventId === "ALL") return;
+    if (!events.some((event) => event.id === selectedEventId)) {
+      setSelectedEventId(events.length > 0 ? events[0].id : "ALL");
+    }
+  }, [events, selectedEventId]);
 
-    if (stalls.length === 0) {
-      return defaultStats;
+  const { totalStalls, reservedStalls, availableStalls, sizeStats, pieData } = useMemo(() => {
+    const defaultSizeStats: Record<Stall["sizeCategory"], { total: number; reserved: number }> = {
+      SMALL: { total: 0, reserved: 0 },
+      MEDIUM: { total: 0, reserved: 0 },
+      LARGE: { total: 0, reserved: 0 },
+    };
+
+    if (filteredStalls.length === 0) {
+      return {
+        totalStalls: 0,
+        reservedStalls: 0,
+        availableStalls: 0,
+        sizeStats: defaultSizeStats,
+        pieData: [
+          { name: "Reserved", value: 0, fill: RESERVED_COLOR },
+          { name: "Available", value: 0, fill: MUTED_COLOR },
+        ],
+      } as const;
     }
 
     const bySize: Record<Stall["sizeCategory"], { total: number; reserved: number }> = {
@@ -65,41 +73,17 @@ export default function EmployeeDashboard() {
       LARGE: { total: 0, reserved: 0 },
     };
 
-    const eventMap: Record<string, { name: string; total: number; reserved: number }> = events.reduce(
-      (acc, event) => {
-        acc[event.id] = { name: event.name, total: 0, reserved: 0 };
-        return acc;
-      },
-      {} as Record<string, { name: string; total: number; reserved: number }>,
-    );
-
     let reserved = 0;
-    stalls.forEach((stall) => {
+    filteredStalls.forEach((stall) => {
       bySize[stall.sizeCategory].total += 1;
-      const eventEntry = eventMap[stall.eventId] ?? {
-        name: stall.eventName ?? `Event ${stall.eventId.slice(0, 4)}`,
-        total: 0,
-        reserved: 0,
-      };
-      eventEntry.total += 1;
       if (stall.isReserved) {
         reserved += 1;
         bySize[stall.sizeCategory].reserved += 1;
-        eventEntry.reserved += 1;
       }
-      eventMap[stall.eventId] = eventEntry;
     });
 
-    const total = stalls.length;
+    const total = filteredStalls.length;
     const available = total - reserved;
-
-    const eventOccupancyData = Object.values(eventMap)
-      .map((entry) => ({
-        ...entry,
-        occupancy: entry.total ? Math.round((entry.reserved / entry.total) * 100) : 0,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
 
     return {
       totalStalls: total,
@@ -110,14 +94,54 @@ export default function EmployeeDashboard() {
         { name: "Reserved", value: reserved, fill: RESERVED_COLOR },
         { name: "Available", value: available, fill: MUTED_COLOR },
       ],
-      eventOccupancyData,
     };
-  }, [stalls, events]);
+  }, [filteredStalls]);
 
-  if (!isAuthenticated) {
-    return null;
-  }
   const occupancyRate = totalStalls ? Math.round((reservedStalls / totalStalls) * 100) : 0;
+
+  const eventOccupancyData = useMemo(() => {
+    if (events.length === 0) {
+      return [] as Array<{ id: string; name: string; total: number; reserved: number; occupancy: number }>;
+    }
+
+    const sourceStalls = selectedEvent ? filteredStalls : stalls;
+    const eventMap = events.reduce(
+      (acc, event) => {
+        acc[event.id] = { id: event.id, name: event.name, total: 0, reserved: 0 };
+        return acc;
+      },
+      {} as Record<string, { id: string; name: string; total: number; reserved: number }>,
+    );
+
+    sourceStalls.forEach((stall) => {
+      const entry = eventMap[stall.eventId] ?? {
+        id: stall.eventId,
+        name: stall.eventName ?? `Event ${stall.eventId.slice(0, 4)}`,
+        total: 0,
+        reserved: 0,
+      };
+      entry.total += 1;
+      if (stall.isReserved) {
+        entry.reserved += 1;
+      }
+      eventMap[stall.eventId] = entry;
+    });
+
+    const rawData = Object.values(eventMap).map((entry) => ({
+      ...entry,
+      occupancy: entry.total ? Math.round((entry.reserved / entry.total) * 100) : 0,
+    }));
+
+    if (selectedEvent) {
+      const match = rawData.find((entry) => entry.id === selectedEvent.id);
+      return match && match.total > 0 ? [match] : [];
+    }
+
+    return rawData
+      .filter((entry) => entry.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }, [events, stalls, filteredStalls, selectedEvent]);
 
   const chartData = [
     {
@@ -136,6 +160,11 @@ export default function EmployeeDashboard() {
       available: sizeStats.LARGE.total - sizeStats.LARGE.reserved,
     },
   ];
+  const contextLabel = selectedEvent ? selectedEvent.name : "All events";
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -143,11 +172,40 @@ export default function EmployeeDashboard() {
       
       <div className="container py-8">
         <div className="space-y-8">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Organiser Dashboard</h1>
-            <p className="text-muted-foreground">
-              Overview of live stall reservations and statistics ({events.length} events)
-            </p>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Organiser Dashboard</h1>
+              <p className="text-muted-foreground">
+                {selectedEvent
+                  ? `Live stall metrics for ${selectedEvent.name}`
+                  : `Overview across ${events.length} event${events.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <div className="w-full lg:w-72 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Event</p>
+              <Select
+                value={selectedEvent ? selectedEvent.id : "ALL"}
+                onValueChange={(value) => setSelectedEventId(value)}
+                disabled={eventsQuery.isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select event" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All events</SelectItem>
+                  {events.map((event) => (
+                    <SelectItem key={event.id} value={event.id}>
+                      {event.name} ({event.year})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedEvent && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedEvent.location} | {selectedEvent.startDate} - {selectedEvent.endDate}
+                </p>
+              )}
+            </div>
           </div>
 
           {isLoading && (
@@ -161,7 +219,7 @@ export default function EmployeeDashboard() {
           <div className="grid md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Total Stalls</CardDescription>
+                <CardDescription>Total Stalls ({contextLabel})</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -173,7 +231,7 @@ export default function EmployeeDashboard() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Reserved</CardDescription>
+                <CardDescription>Reserved ({contextLabel})</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -185,7 +243,7 @@ export default function EmployeeDashboard() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Available</CardDescription>
+                <CardDescription>Available ({contextLabel})</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -197,7 +255,7 @@ export default function EmployeeDashboard() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Occupancy Rate</CardDescription>
+                <CardDescription>Occupancy Rate ({contextLabel})</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -213,7 +271,7 @@ export default function EmployeeDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Occupancy by Stall Size</CardTitle>
-                <CardDescription>Stacked view of reserved vs available inventory</CardDescription>
+                <CardDescription>Reserved vs available inventory for {contextLabel}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={320}>
@@ -254,7 +312,7 @@ export default function EmployeeDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Overall Occupancy</CardTitle>
-                <CardDescription>Live share of reserved vs open stalls</CardDescription>
+                <CardDescription>Live share of reserved vs open stalls for {contextLabel}</CardDescription>
               </CardHeader>
               <CardContent className="relative h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -296,12 +354,22 @@ export default function EmployeeDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Events by Occupancy</CardTitle>
-              <CardDescription>Focus on the busiest fairs right now</CardDescription>
+              <CardTitle>
+                {selectedEvent ? `${selectedEvent.name} Occupancy` : "Top Events by Occupancy"}
+              </CardTitle>
+              <CardDescription>
+                {selectedEvent
+                  ? "Reserved vs total stalls for the selected event"
+                  : "Focus on the busiest fairs right now"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {eventOccupancyData.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No events found yet.</p>
+                <p className="text-muted-foreground text-sm">
+                  {selectedEvent
+                    ? `No stall data available for ${selectedEvent.name} yet.`
+                    : "No events found yet."}
+                </p>
               ) : (
                 <ResponsiveContainer width="100%" height={320}>
                   <AreaChart data={eventOccupancyData} margin={{ left: 0, right: 0, top: 16, bottom: 0 }}>
@@ -338,6 +406,7 @@ export default function EmployeeDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Detailed Breakdown by Size</CardTitle>
+              <CardDescription>Inventory snapshot for {contextLabel}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
