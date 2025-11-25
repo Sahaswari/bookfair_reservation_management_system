@@ -152,6 +152,9 @@ public class ReservationService {
         if (newStatus == ReservationStatus.CONFIRMED) {
             // Generate QR code URL when confirmed
             reservation.setQrCodeUrl(generateQRCodeUrl(reservation.getId()));
+        } else if (newStatus == ReservationStatus.CANCELLED &&
+                (oldStatus == ReservationStatus.PENDING || oldStatus == ReservationStatus.CONFIRMED)) {
+            unreserveStall(reservation);
         }
 
         Reservation updatedReservation = reservationRepository.save(reservation);
@@ -161,6 +164,22 @@ public class ReservationService {
         publishReservationStatusChangedEvent(updatedReservation, oldStatus, newStatus);
 
         return convertToDTO(updatedReservation);
+    }
+
+    private void unreserveStall(Reservation reservation) {
+        try {
+            stallServiceClient.unreserveStall(reservation.getStallId());
+            log.info("Requested stall {} release in Stall Service for reservation {}", reservation.getStallId(), reservation.getId());
+        } catch (RuntimeException ex) {
+            log.error("Unable to unreserve stall {} while cancelling reservation {}", reservation.getStallId(), reservation.getId(), ex);
+        }
+
+        stallSnapshotRepository.findById(reservation.getStallId()).ifPresent(snapshot -> {
+            snapshot.setIsReserved(false);
+            snapshot.setReservedBy(null);
+            stallSnapshotRepository.save(snapshot);
+            log.debug("Updated stall snapshot {} to available while cancelling reservation {}", snapshot.getStallId(), reservation.getId());
+        });
     }
 
     /**
