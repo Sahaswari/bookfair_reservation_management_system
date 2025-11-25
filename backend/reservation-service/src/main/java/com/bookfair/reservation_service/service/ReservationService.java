@@ -208,6 +208,20 @@ public class ReservationService {
         
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with ID: " + id));
+
+        // Attempt to free the stall in Stall Service so the space becomes available immediately
+        try {
+            stallServiceClient.unreserveStall(reservation.getStallId());
+        } catch (RuntimeException ex) {
+            log.error("Failed to unreserve stall {} in Stall Service while removing reservation {}", reservation.getStallId(), reservation.getId(), ex);
+        }
+
+        // Update local stall snapshot so future reads reflect availability instantly
+        stallSnapshotRepository.findById(reservation.getStallId()).ifPresent(snapshot -> {
+            snapshot.setIsReserved(false);
+            snapshot.setReservedBy(null);
+            stallSnapshotRepository.save(snapshot);
+        });
         
         publishReservationDeletedEvent(reservation);
         reservationRepository.delete(reservation);

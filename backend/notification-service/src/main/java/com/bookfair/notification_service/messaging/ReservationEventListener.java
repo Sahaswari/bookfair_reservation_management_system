@@ -38,6 +38,17 @@ public class ReservationEventListener {
             log.info("Received reservation event: {} for reservation ID: {}", 
                     event.getEventType(), event.getReservationId());
 
+            String eventType = event.getEventType() != null ? event.getEventType().toUpperCase() : "";
+
+            if ("RESERVATION_DELETED".equals(eventType)) {
+                reservationSnapshotRepository.findByReservationId(event.getReservationId())
+                        .ifPresent(snapshot -> {
+                            reservationSnapshotRepository.delete(snapshot);
+                            log.info("Deleted reservation snapshot for reservation ID: {}", event.getReservationId());
+                        });
+                return;
+            }
+
             // Find or create reservation snapshot
                 ReservationSnapshot snapshot = reservationSnapshotRepository
                     .findByReservationId(event.getReservationId())
