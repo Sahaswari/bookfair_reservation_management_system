@@ -1,5 +1,3 @@
-version: '3.8'
-
 # This is a lightweight compose file for running only backend services
 # Useful during frontend development when you want to run frontends locally
 
@@ -30,8 +28,13 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8081
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
     networks:
       - bookfair-network
+    depends_on:
+      - auth-db
     restart: unless-stopped
 
   # Genre Service
@@ -45,8 +48,13 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8082
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://genre-db:5432/genre_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
     networks:
       - bookfair-network
+    depends_on:
+      - genre-db
     restart: unless-stopped
 
   # Notification Service
@@ -60,8 +68,13 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8083
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notification_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
     networks:
       - bookfair-network
+    depends_on:
+      - notification-db
     restart: unless-stopped
 
   # Reservation Service
@@ -75,8 +88,13 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8084
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://reservation-db:5432/reservation_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
     networks:
       - bookfair-network
+    depends_on:
+      - reservation-db
     restart: unless-stopped
 
   # Stall Service
@@ -90,6 +108,87 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8085
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://stall-db:5432/stall_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    networks:
+      - bookfair-network
+    depends_on:
+      - stall-db
+    restart: unless-stopped
+
+  # PostgreSQL Databases
+  stall-db:
+    image: postgres:16-alpine
+    container_name: bookfair-stall-db
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=stall_db
+    volumes:
+      - stall-db-data:/var/lib/postgresql/data
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  auth-db:
+    image: postgres:16-alpine
+    container_name: bookfair-auth-db
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=auth_db
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  reservation-db:
+    image: postgres:16-alpine
+    container_name: bookfair-reservation-db
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=reservation_db
+    volumes:
+      - reservation-db-data:/var/lib/postgresql/data
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  genre-db:
+    image: postgres:16-alpine
+    container_name: bookfair-genre-db
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=genre_db
+    volumes:
+      - genre-db-data:/var/lib/postgresql/data
+    networks:
+      - bookfair-network
+    restart: unless-stopped
+
+  notification-db:
+    image: postgres:16-alpine
+    container_name: bookfair-notification-db
+    ports:
+      - "5437:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=notification_db
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
     networks:
       - bookfair-network
     restart: unless-stopped
@@ -97,3 +196,10 @@ services:
 networks:
   bookfair-network:
     driver: bridge
+
+volumes:
+  stall-db-data:
+  auth-db-data:
+  reservation-db-data:
+  genre-db-data:
+  notification-db-data:

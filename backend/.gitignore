@@ -1,0 +1,31 @@
+# ============================================================================
+# Backend Services .gitignore
+# ============================================================================
+
+# Maven / Build
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Spring Boot
+*.log
+logs/
+application-local.properties
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp

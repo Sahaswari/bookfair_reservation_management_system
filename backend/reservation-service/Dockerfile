@@ -25,7 +25,7 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Expose the port
-EXPOSE 8084
+EXPOSE 8086
 
 # Set environment variables
 ENV JAVA_OPTS=""

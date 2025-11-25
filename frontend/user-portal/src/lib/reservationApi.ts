@@ -1,0 +1,63 @@
+import { apiFetch } from "./api";
+
+export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+
+export interface Reservation {
+  id: string;
+  userId: string;
+  stallId: string;
+  eventId: string;
+  reservationDate: string;
+  status: ReservationStatus;
+  confirmationCode?: string;
+  qrCodeUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  userFirstName?: string;
+  userLastName?: string;
+  userEmail?: string;
+  stallCode?: string;
+  sizeCategory?: string;
+  price?: number;
+  locationX?: number;
+  locationY?: number;
+  stallReserved?: boolean;
+  stallReservedBy?: string;
+}
+
+export interface CreateReservationPayload {
+  userId: string;
+  stallId: string;
+  eventId: string;
+}
+
+export interface UpdateReservationStatusPayload {
+  status: ReservationStatus;
+}
+
+export const reservationApi = {
+  async createReservation(payload: CreateReservationPayload) {
+    const res = await apiFetch<Reservation>("/api/reservations", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async listReservationsByUser(userId: string) {
+    const res = await apiFetch<Reservation[]>(`/api/reservations/user/${userId}`);
+    return res.data;
+  },
+
+  async deleteReservation(reservationId: string) {
+    await apiFetch(`/api/reservations/${reservationId}`, { method: "DELETE" });
+  },
+
+  async updateReservationStatus(reservationId: string, payload: UpdateReservationStatusPayload) {
+    const res = await apiFetch<Reservation>(`/api/reservations/${reservationId}/status`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
