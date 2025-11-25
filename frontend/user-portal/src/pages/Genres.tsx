@@ -6,8 +6,30 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Search } from "lucide-react";
 import Header from "@/components/Header";
-import { availableLiteraryGenres } from "@/data/mockData";
 import { toast } from "sonner";
+
+const availableGenres = [
+  "Fiction",
+  "Poetry",
+  "Biography",
+  "Children's Books",
+  "Mystery & Thriller",
+  "Science Fiction",
+  "Fantasy",
+  "Romance",
+  "Historical Fiction",
+  "Self-Help",
+  "Business",
+  "Philosophy",
+  "Travel",
+  "Cookbooks",
+  "Art & Photography",
+  "Religion & Spirituality",
+  "Science & Nature",
+  "Comics & Graphic Novels",
+  "Young Adult",
+  "Literary Criticism",
+];
 
 export default function Genres() {
   const navigate = useNavigate();
@@ -15,7 +37,7 @@ export default function Genres() {
   const [searchQuery, setSearchQuery] = useState("");
   const [customGenre, setCustomGenre] = useState("");
 
-  const filteredGenres = availableLiteraryGenres.filter(genre =>
+  const filteredGenres = availableGenres.filter(genre =>
     genre.toLowerCase().includes(searchQuery.toLowerCase()) &&
     !selectedGenres.includes(genre)
   );
