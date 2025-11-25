@@ -1,51 +1,118 @@
-import { useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Info, X, RefreshCw, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
-import { mockStalls, type Stall, type StallSize } from "@/data/mockData";
+import { useAuth } from "@/hooks/useAuth";
+import { stallApi, type Stall, type StallSizeCategory, type Event } from "@/lib/stallApi";
 import { toast } from "sonner";
+type UiStall = Stall & { status: "available" | "selected" | "reserved" };
+
+const sizeLabels: Record<StallSizeCategory, string> = {
+  SMALL: "Small",
+  MEDIUM: "Medium",
+  LARGE: "Large",
+};
+
+const sizeColors: Record<StallSizeCategory, string> = {
+  SMALL: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  MEDIUM: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  LARGE: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+};
 
 export default function Reserve() {
   const navigate = useNavigate();
-  const [stalls, setStalls] = useState(mockStalls);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedStalls, setSelectedStalls] = useState<string[]>([]);
-  const [filterSize, setFilterSize] = useState<StallSize | "all">("all");
+  const [filterSize, setFilterSize] = useState<StallSizeCategory | "ALL">("ALL");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-
   const maxSelection = 3;
-  const sizeColors = {
-    small: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-    large: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  };
 
-  const handleStallClick = (stallId: string) => {
-    const stall = stalls.find(s => s.id === stallId);
-    if (!stall || stall.status === 'reserved') return;
+  const eventsQuery = useQuery({
+    queryKey: ["events"],
+    queryFn: stallApi.listEvents,
+  });
 
-    if (selectedStalls.includes(stallId)) {
-      setSelectedStalls(selectedStalls.filter(id => id !== stallId));
-      setStalls(stalls.map(s => s.id === stallId ? { ...s, status: 'available' } : s));
-    } else {
-      if (selectedStalls.length >= maxSelection) {
-        toast.error(`Maximum ${maxSelection} stalls can be selected`);
-        return;
-      }
-      setSelectedStalls([...selectedStalls, stallId]);
-      setStalls(stalls.map(s => s.id === stallId ? { ...s, status: 'selected' } : s));
+  const events = eventsQuery.data || [];
+
+  useEffect(() => {
+    if (!selectedEventId && events.length > 0) {
+      setSelectedEventId(events[0].id);
     }
-  };
+  }, [events, selectedEventId]);
 
-  const filteredStalls = filterSize === "all" 
-    ? stalls 
-    : stalls.filter(s => s.size === filterSize);
+  const stallsQuery = useQuery({
+    queryKey: ["available-stalls", selectedEventId],
+    queryFn: () => stallApi.listAvailableStallsByEvent(selectedEventId!),
+    enabled: !!selectedEventId,
+  });
 
-  const selectedStallsData = stalls.filter(s => selectedStalls.includes(s.id));
+  const uiStalls: UiStall[] = useMemo(() => {
+    const available = stallsQuery.data || [];
+    return available.map((stall) => ({
+      ...stall,
+      status: stall.isReserved
+        ? "reserved"
+        : selectedStalls.includes(stall.id)
+          ? "selected"
+          : "available",
+    }));
+  }, [stallsQuery.data, selectedStalls]);
+
+  const filteredStalls = useMemo(() => {
+    if (filterSize === "ALL") return uiStalls;
+    return uiStalls.filter((s) => s.sizeCategory === filterSize);
+  }, [uiStalls, filterSize]);
+
+  const selectedStallsData = uiStalls.filter((s) => selectedStalls.includes(s.id));
   const totalPrice = selectedStallsData.reduce((sum, s) => sum + s.price, 0);
+
+  const reserveMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error("User not found");
+      if (!selectedEventId) throw new Error("No event selected");
+      const tasks = selectedStalls.map((stallId) => stallApi.reserveStall(stallId, user.id));
+      await Promise.all(tasks);
+    },
+    onSuccess: () => {
+      toast.success("Reservation successful");
+      queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-stalls", user?.id] });
+      navigate("/success", { state: { stalls: selectedStallsData, totalPrice } });
+    },
+    onError: (err) => {
+      toast.error((err as Error).message || "Reservation failed");
+    },
+    onSettled: () => setShowConfirmModal(false),
+  });
+
+  const handleStallClick = (stall: UiStall) => {
+    if (stall.isReserved) return;
+    if (stall.status === "selected") {
+      setSelectedStalls((prev) => prev.filter((id) => id !== stall.id));
+      return;
+    }
+    if (selectedStalls.length >= maxSelection) {
+      toast.error(`Maximum ${maxSelection} stalls can be selected`);
+      return;
+    }
+    setSelectedStalls((prev) => [...prev, stall.id]);
+  };
 
   const handleReserve = () => {
     if (selectedStalls.length === 0) {
@@ -55,10 +122,9 @@ export default function Reserve() {
     setShowConfirmModal(true);
   };
 
-  const confirmReservation = () => {
-    toast.success("Reservation successful!");
-    navigate("/success", { state: { stalls: selectedStallsData, totalPrice } });
-  };
+  const resetSelection = () => setSelectedStalls([]);
+
+  const eventSummary = events.find((e) => e.id === selectedEventId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,55 +139,75 @@ export default function Reserve() {
             </p>
           </div>
 
-          {/* Filters and Legend */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Filter by size:</span>
-                  <Button 
-                    variant={filterSize === "all" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setFilterSize("all")}
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex flex-wrap items-center gap-4 justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Event</p>
+                  <Select
+                    value={selectedEventId ?? undefined}
+                    onValueChange={(value) => {
+                      setSelectedEventId(value);
+                      resetSelection();
+                    }}
+                    disabled={eventsQuery.isLoading || events.length === 0}
                   >
-                    All
-                  </Button>
-                  <Button 
-                    variant={filterSize === "small" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setFilterSize("small")}
-                  >
-                    Small
-                  </Button>
-                  <Button 
-                    variant={filterSize === "medium" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setFilterSize("medium")}
-                  >
-                    Medium
-                  </Button>
-                  <Button 
-                    variant={filterSize === "large" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setFilterSize("large")}
-                  >
-                    Large
-                  </Button>
+                    <SelectTrigger className="w-[260px]">
+                      <SelectValue placeholder={eventsQuery.isLoading ? "Loading events..." : "Choose event"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.map((event: Event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.name} ({event.year})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {eventSummary && (
+                    <p className="text-xs text-muted-foreground">
+                      {eventSummary.location} • {eventSummary.startDate} ? {eventSummary.endDate}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-primary"></div>
-                    <span>Selected</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-card border-2"></div>
-                    <span>Available</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-muted"></div>
-                    <span>Reserved</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Filter by size:</span>
+                  <Select value={filterSize} onValueChange={(val) => setFilterSize(val as StallSizeCategory | "ALL")}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All</SelectItem>
+                      <SelectItem value="SMALL">Small</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="LARGE">Large</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      resetSelection();
+                      queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-primary"></div>
+                  <span>Selected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-card border-2"></div>
+                  <span>Available</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-muted"></div>
+                  <span>Reserved</span>
                 </div>
               </div>
             </CardContent>
@@ -142,29 +228,43 @@ export default function Reserve() {
                   <CardDescription>Click on available stalls to select them</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-8 gap-2">
-                    {filteredStalls.map((stall) => (
-                      <button
-                        key={stall.id}
-                        onClick={() => handleStallClick(stall.id)}
-                        disabled={stall.status === 'reserved'}
-                        className={`
-                          aspect-square rounded-lg border-2 p-1 text-xs font-medium transition-all
-                          ${stall.status === 'selected' ? 'bg-primary text-primary-foreground border-primary scale-105' : ''}
-                          ${stall.status === 'available' ? 'bg-card hover:bg-accent hover:scale-105 cursor-pointer' : ''}
-                          ${stall.status === 'reserved' ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50' : ''}
-                        `}
-                        title={`${stall.label} - ${stall.size} - LKR ${stall.price.toLocaleString()}`}
-                      >
-                        <div className="flex flex-col items-center justify-center h-full">
-                          <span className="font-bold">{stall.label}</span>
-                          <Badge variant="outline" className={`text-[8px] px-1 mt-1 ${sizeColors[stall.size]}`}>
-                            {stall.size[0].toUpperCase()}
-                          </Badge>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  {stallsQuery.isLoading && (
+                    <div className="grid grid-cols-8 gap-2">
+                      {Array.from({ length: 24 }).map((_, idx) => (
+                        <Skeleton key={idx} className="aspect-square rounded-lg" />
+                      ))}
+                    </div>
+                  )}
+
+                  {!stallsQuery.isLoading && filteredStalls.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No available stalls for this event/size.</p>
+                  )}
+
+                  {!stallsQuery.isLoading && filteredStalls.length > 0 && (
+                    <div className="grid grid-cols-8 gap-2">
+                      {filteredStalls.map((stall) => (
+                        <button
+                          key={stall.id}
+                          onClick={() => handleStallClick(stall)}
+                          disabled={stall.isReserved}
+                          className={`
+                            aspect-square rounded-lg border-2 p-1 text-xs font-medium transition-all
+                            ${stall.status === "selected" ? "bg-primary text-primary-foreground border-primary scale-105" : ""}
+                            ${stall.status === "available" ? "bg-card hover:bg-accent hover:scale-105 cursor-pointer" : ""}
+                            ${stall.isReserved ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50" : ""}
+                          `}
+                          title={`${stall.stallCode} - ${sizeLabels[stall.sizeCategory]} - LKR ${stall.price.toLocaleString()}`}
+                        >
+                          <div className="flex flex-col items-center justify-center h-full">
+                            <span className="font-bold">{stall.stallCode}</span>
+                            <Badge variant="outline" className={`text-[8px] px-1 mt-1 ${sizeColors[stall.sizeCategory]}`}>
+                              {stall.sizeCategory[0]}
+                            </Badge>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -175,7 +275,7 @@ export default function Reserve() {
                 <CardHeader>
                   <CardTitle>Your Selection</CardTitle>
                   <CardDescription>
-                    {selectedStalls.length} / {maxSelection} stalls selected
+                    {selectedStallsData.length} / {maxSelection} stalls selected
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -189,8 +289,10 @@ export default function Reserve() {
                         {selectedStallsData.map((stall) => (
                           <div key={stall.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
                             <div>
-                              <p className="font-semibold">{stall.label}</p>
-                              <p className="text-xs text-muted-foreground capitalize">{stall.size}</p>
+                              <p className="font-semibold">{stall.stallCode}</p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {sizeLabels[stall.sizeCategory]}
+                              </p>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">
@@ -200,7 +302,7 @@ export default function Reserve() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6"
-                                onClick={() => handleStallClick(stall.id)}
+                                onClick={() => handleStallClick(stall)}
                               >
                                 <X className="h-4 w-4" />
                               </Button>
@@ -235,15 +337,15 @@ export default function Reserve() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Small (3m × 2m)</span>
+                    <span>Small (3m x 2m)</span>
                     <span className="font-semibold">LKR 15,000</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Medium (4m × 3m)</span>
+                    <span>Medium (4m x 3m)</span>
                     <span className="font-semibold">LKR 25,000</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Large (6m × 4m)</span>
+                    <span>Large (6m x 4m)</span>
                     <span className="font-semibold">LKR 40,000</span>
                   </div>
                 </CardContent>
@@ -265,7 +367,9 @@ export default function Reserve() {
               <div className="space-y-2">
                 {selectedStallsData.map((stall) => (
                   <div key={stall.id} className="flex justify-between text-sm">
-                    <span>{stall.label} ({stall.size})</span>
+                    <span>
+                      {stall.stallCode} ({sizeLabels[stall.sizeCategory]})
+                    </span>
                     <span>LKR {stall.price.toLocaleString()}</span>
                   </div>
                 ))}
@@ -288,7 +392,13 @@ export default function Reserve() {
                 <Button variant="outline" className="flex-1" onClick={() => setShowConfirmModal(false)}>
                   Cancel
                 </Button>
-                <Button variant="hero" className="flex-1" onClick={confirmReservation}>
+                <Button
+                  variant="hero"
+                  className="flex-1"
+                  onClick={() => reserveMutation.mutate()}
+                  disabled={reserveMutation.isPending}
+                >
+                  {reserveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Confirm Reservation
                 </Button>
               </div>
@@ -299,3 +409,5 @@ export default function Reserve() {
     </div>
   );
 }
+
+
