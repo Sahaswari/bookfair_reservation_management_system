@@ -29,6 +29,7 @@ import {
   type EventStatus,
   type Stall,
   type StallSizeCategory,
+  type UpdateStallPayload,
   stallApi,
 } from "@/lib/stallApi";
 import { reservationApi, type Reservation } from "@/lib/reservationApi";
@@ -184,7 +185,7 @@ export default function StallManagement() {
     if (selectedStall) {
       setEditPrice(selectedStall.price);
     }
-  }, [selectedStall?.id]);
+  }, [selectedStall?.id, selectedStall?.price]);
 
   const createEventMutation = useMutation({
     mutationFn: stallApi.createEvent,
@@ -229,12 +230,12 @@ export default function StallManagement() {
   });
 
   const updateStallMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<{ price: number; sizeCategory: StallSizeCategory }> }) =>
-      stallApi.updateStall(id, { ...payload }),
-    onSuccess: () => {
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateStallPayload }) =>
+      stallApi.updateStall(id, payload),
+    onSuccess: (_, { id }) => {
       toast({ title: "Stall updated" });
       queryClient.invalidateQueries({ queryKey: ["stalls"] });
-      queryClient.invalidateQueries({ queryKey: ["stall"] });
+      queryClient.invalidateQueries({ queryKey: ["stall", id] });
     },
     onError: () => toast({ title: "Failed to update stall", variant: "destructive" }),
   });
@@ -335,11 +336,21 @@ export default function StallManagement() {
 
   const handleUpdateStall = () => {
     if (!selectedStall) return;
+    const normalizedPrice = Number(editPrice);
+    if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
+      toast({ title: "Enter a valid price", variant: "destructive" });
+      return;
+    }
+
     updateStallMutation.mutate({
       id: selectedStall.id,
       payload: {
-        price: Number(editPrice),
+        eventId: selectedStall.eventId,
+        stallCode: selectedStall.stallCode,
         sizeCategory: selectedStall.sizeCategory,
+        price: normalizedPrice,
+        locationX: typeof selectedStall.locationX === "number" ? selectedStall.locationX : undefined,
+        locationY: typeof selectedStall.locationY === "number" ? selectedStall.locationY : undefined,
       },
     });
   };

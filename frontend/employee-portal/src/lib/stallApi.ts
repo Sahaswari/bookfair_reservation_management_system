@@ -54,8 +54,13 @@ export interface CreateStallPayload {
   locationY?: number;
 }
 
-export interface UpdateStallPayload extends Partial<CreateStallPayload> {
-  isReserved?: boolean;
+export interface UpdateStallPayload {
+  eventId: string;
+  stallCode: string;
+  sizeCategory: StallSizeCategory;
+  price: number;
+  locationX?: number;
+  locationY?: number;
 }
 
 const unwrap = async <T>(promise: Promise<ApiResponse<T>>) => {
