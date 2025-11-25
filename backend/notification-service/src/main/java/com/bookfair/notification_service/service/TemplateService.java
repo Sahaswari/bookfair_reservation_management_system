@@ -87,7 +87,7 @@ public class TemplateService {
                                                 Dear <strong>{{firstName}} {{lastName}}</strong>,
                                             </p>
                                             <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 30px 0;">
-                                                Great news! Your stall reservation has been created successfully. Please review the details below and complete your payment to confirm your reservation.
+                                                Great news! Your stall reservation has been created successfully. Please review the details below.
                                             </p>
                                             
                                             <!-- Reservation Details Card -->
@@ -154,27 +154,7 @@ public class TemplateService {
                                                 </tr>
                                             </table>
                                             
-                                            <!-- Action Button -->
-                                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
-                                                <tr>
-                                                    <td align="center">
-                                                        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 25px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
-                                                            Complete Payment
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            </table>
                                             
-                                            <!-- Important Notice -->
-                                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; margin: 20px 0;">
-                                                <tr>
-                                                    <td style="padding: 15px;">
-                                                        <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.6;">
-                                                            <strong>⚠️ Important:</strong> Please complete your payment within 24 hours to confirm your reservation. Unpaid reservations will be automatically cancelled.
-                                                        </p>
-                                                    </td>
-                                                </tr>
-                                            </table>
                                             
                                             <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 30px 0 0 0;">
                                                 Thank you for choosing our Book Fair! If you have any questions, please don't hesitate to contact us.

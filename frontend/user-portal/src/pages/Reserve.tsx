@@ -142,13 +142,17 @@ export default function Reserve() {
         const eventName = eventDetails?.name ?? eventSummary?.name ?? "Book Fair";
         const stallCode = stallDetails?.stallCode ?? reservation.stallId;
         const salutation = user?.firstName ?? user?.email ?? "there";
+        const formattedAmount =
+          typeof stallDetails?.price === "number" ? `LKR ${stallDetails.price.toLocaleString()}` : null;
+        const messageBase = `Hi ${salutation}, your reservation for ${stallCode} at ${eventName} is confirmed.`;
+        const message = formattedAmount ? `${messageBase} Reservation amount: ${formattedAmount}.` : messageBase;
 
         void notificationApi
           .createNotification({
             userId: reservation.userId,
             reservationId: reservation.id,
             subject: `Your reservation for ${stallCode} is confirmed`,
-            message: `Hi ${salutation}, your reservation for ${stallCode} at ${eventName} is confirmed.`,
+            message,
             metadata: {
               eventId: reservation.eventId,
               eventName,

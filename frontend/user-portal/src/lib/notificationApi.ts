@@ -17,8 +17,8 @@ export const notificationApi = {
     const response = await apiFetch<T>("/api/notifications", {
       method: "POST",
       body: JSON.stringify({
-        channel: payload.channel ?? "EMAIL",
         ...payload,
+        channel: payload.channel ?? "EMAIL",
       }),
     });
 
