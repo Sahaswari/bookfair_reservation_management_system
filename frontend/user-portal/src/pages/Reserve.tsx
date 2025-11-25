@@ -43,7 +43,7 @@ export default function Reserve() {
   const [selectedStalls, setSelectedStalls] = useState<string[]>([]);
   const [filterSize, setFilterSize] = useState<StallSizeCategory | "ALL">("ALL");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const maxSelection = 3;
+  const reservationLimit: number = 3;
 
   const eventsQuery = useQuery({
     queryKey: ["events"],
@@ -63,6 +63,35 @@ export default function Reserve() {
     queryFn: () => stallApi.listAvailableStallsByEvent(selectedEventId!),
     enabled: !!selectedEventId,
   });
+
+  const userReservationsQuery = useQuery({
+    queryKey: ["reservations", user?.id],
+    queryFn: () => reservationApi.listReservationsByUser(user!.id),
+    enabled: !!user?.id,
+  });
+
+  useEffect(() => {
+    if (userReservationsQuery.isError) {
+      toast.error("Unable to load your existing reservations. Please refresh and try again.");
+    }
+  }, [userReservationsQuery.isError]);
+
+  const activeReservationsForEvent = useMemo(() => {
+    if (!selectedEventId) return 0;
+    const reservations = userReservationsQuery.data || [];
+    return reservations.filter(
+      (reservation) => reservation.eventId === selectedEventId && reservation.status !== "CANCELLED",
+    ).length;
+  }, [userReservationsQuery.data, selectedEventId]);
+
+  const availableSlotsForEvent = selectedEventId
+    ? Math.max(reservationLimit - activeReservationsForEvent, 0)
+    : reservationLimit;
+  const hasReachedReservationLimit = selectedEventId ? availableSlotsForEvent === 0 : false;
+  const selectionLimitForEvent = selectedEventId ? availableSlotsForEvent : reservationLimit;
+  const remainingSelectableSlots = Math.max(selectionLimitForEvent - selectedStalls.length, 0);
+  const isReservationLimitPending = userReservationsQuery.isPending && !userReservationsQuery.data;
+  const isReservationLimitUnavailable = userReservationsQuery.isError;
 
   const uiStalls: UiStall[] = useMemo(() => {
     const available = stallsQuery.data || [];
@@ -88,6 +117,11 @@ export default function Reserve() {
     mutationFn: async () => {
       if (!user?.id) throw new Error("User not found");
       if (!selectedEventId) throw new Error("No event selected");
+      if (isReservationLimitUnavailable) throw new Error("Unable to verify reservation availability");
+      if (selectedStalls.length === 0) throw new Error("Please select at least one stall");
+      if (selectedStalls.length > selectionLimitForEvent) {
+        throw new Error("Selection exceeds remaining reservations for this event");
+      }
       const reservations = await Promise.all(
         selectedStalls.map((stallId) =>
           reservationApi.createReservation({
@@ -144,14 +178,50 @@ export default function Reserve() {
       setSelectedStalls((prev) => prev.filter((id) => id !== stall.id));
       return;
     }
-    if (selectedStalls.length >= maxSelection) {
-      toast.error(`Maximum ${maxSelection} stalls can be selected`);
+    if (isReservationLimitPending) {
+      toast.info("Loading your reservation availability. Please try again in a moment.");
+      return;
+    }
+    if (isReservationLimitUnavailable) {
+      toast.error("Unable to verify your reservation quota right now. Please refresh the page.");
+      return;
+    }
+    if (!selectedEventId) {
+      toast.error("Please select an event before choosing stalls");
+      return;
+    }
+    if (hasReachedReservationLimit) {
+      toast.warning("You have already reserved the maximum stalls for this event");
+      return;
+    }
+    if (remainingSelectableSlots <= 0) {
+      toast.warning("You have already selected all remaining stalls for this event");
       return;
     }
     setSelectedStalls((prev) => [...prev, stall.id]);
   };
 
   const handleReserve = () => {
+    if (!selectedEventId) {
+      toast.error("Please choose an event before reserving");
+      return;
+    }
+    if (isReservationLimitPending) {
+      toast.info("Still verifying your reservation limit. Try again shortly.");
+      return;
+    }
+    if (isReservationLimitUnavailable) {
+      toast.error("Unable to verify your reservation quota. Please refresh and try again.");
+      return;
+    }
+    if (hasReachedReservationLimit) {
+      toast.error("You have already reserved the maximum stalls allowed for this event");
+      return;
+    }
+    if (selectedStalls.length > selectionLimitForEvent) {
+      toast.error("Your selection exceeds the remaining slots for this event");
+      return;
+    }
     if (selectedStalls.length === 0) {
       toast.error("Please select at least one stall");
       return;
@@ -172,7 +242,19 @@ export default function Reserve() {
           <div>
             <h1 className="text-4xl font-bold mb-2">Reserve Your Stall</h1>
             <p className="text-muted-foreground">
-              Select up to {maxSelection} stalls from the exhibition hall map
+              Each event allows up to {reservationLimit} stall{reservationLimit === 1 ? "" : "s"} per exhibitor.
+              {selectedEventId && (
+                <>
+                  {" "}
+                  {isReservationLimitPending
+                    ? "Checking your existing reservations..."
+                    : isReservationLimitUnavailable
+                      ? "Unable to retrieve your reservation count right now. Please refresh."
+                      : `You currently have ${activeReservationsForEvent} active reservation${
+                          activeReservationsForEvent === 1 ? "" : "s"
+                        } for this event, so you can reserve ${availableSlotsForEvent} more.`}
+                </>
+              )}
             </p>
           </div>
 
@@ -203,6 +285,19 @@ export default function Reserve() {
                   {eventSummary && (
                     <p className="text-xs text-muted-foreground">
                       {eventSummary.location} • {eventSummary.startDate} ? {eventSummary.endDate}
+                    </p>
+                  )}
+                  {selectedEventId && (
+                    <p
+                      className={`text-xs ${hasReachedReservationLimit ? "text-destructive" : "text-muted-foreground"}`}
+                    >
+                      {isReservationLimitPending
+                        ? "Checking your reservations for this event..."
+                        : isReservationLimitUnavailable
+                          ? "Unable to determine remaining slots for this event"
+                          : hasReachedReservationLimit
+                            ? "You have already reached the maximum reservations for this event"
+                            : `${availableSlotsForEvent} reservation slot${availableSlotsForEvent === 1 ? "" : "s"} remaining for this event`}
                     </p>
                   )}
                 </div>
@@ -312,8 +407,17 @@ export default function Reserve() {
                 <CardHeader>
                   <CardTitle>Your Selection</CardTitle>
                   <CardDescription>
-                    {selectedStallsData.length} / {maxSelection} stalls selected
+                    {isReservationLimitPending
+                      ? "Calculating remaining capacity..."
+                      : isReservationLimitUnavailable
+                        ? "Unable to determine remaining capacity"
+                        : `${selectedStallsData.length} selected · ${remainingSelectableSlots} remaining`}
                   </CardDescription>
+                  {hasReachedReservationLimit && !isReservationLimitPending && !isReservationLimitUnavailable && (
+                    <p className="text-xs text-destructive mt-1">
+                      You already hold the maximum number of reservations for this event.
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {selectedStallsData.length === 0 ? (
@@ -358,6 +462,13 @@ export default function Reserve() {
                           className="w-full" 
                           size="lg"
                           onClick={handleReserve}
+                          disabled={
+                            selectedStalls.length === 0 ||
+                            reserveMutation.isPending ||
+                            isReservationLimitPending ||
+                            isReservationLimitUnavailable ||
+                            hasReachedReservationLimit
+                          }
                         >
                           Reserve Now
                         </Button>
