@@ -1,11 +1,28 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  PolarAngleAxis,
+  RadialBar,
+  RadialBarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Users, LayoutGrid, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import { useEmployeeAuth } from "@/hooks/useEmployeeAuth";
 import { stallApi, type Stall } from "@/lib/stallApi";
+
+const RESERVED_COLOR = "hsl(var(--employee))";
+const AVAILABLE_COLOR = "hsl(var(--primary))";
+const MUTED_COLOR = "hsl(var(--muted))";
 
 export default function EmployeeDashboard() {
   const { isAuthenticated } = useEmployeeAuth();
@@ -16,22 +33,30 @@ export default function EmployeeDashboard() {
   const events = eventsQuery.data ?? [];
   const isLoading = stallsQuery.isLoading || eventsQuery.isLoading;
 
-  const { totalStalls, reservedStalls, availableStalls, sizeStats, pieData } = useMemo(() => {
+  const { totalStalls, reservedStalls, availableStalls, sizeStats, pieData, eventOccupancyData } = useMemo(() => {
+    const defaultStats = {
+      totalStalls: 0,
+      reservedStalls: 0,
+      availableStalls: 0,
+      sizeStats: {
+        SMALL: { total: 0, reserved: 0 },
+        MEDIUM: { total: 0, reserved: 0 },
+        LARGE: { total: 0, reserved: 0 },
+      },
+      pieData: [
+        { name: "Reserved", value: 0, fill: RESERVED_COLOR },
+        { name: "Available", value: 0, fill: MUTED_COLOR },
+      ],
+      eventOccupancyData: events.map((event) => ({
+        name: event.name,
+        total: 0,
+        reserved: 0,
+        occupancy: 0,
+      })),
+    } as const;
+
     if (stalls.length === 0) {
-      return {
-        totalStalls: 0,
-        reservedStalls: 0,
-        availableStalls: 0,
-        sizeStats: {
-          SMALL: { total: 0, reserved: 0 },
-          MEDIUM: { total: 0, reserved: 0 },
-          LARGE: { total: 0, reserved: 0 },
-        },
-        pieData: [
-          { name: "Reserved", value: 0, color: "hsl(var(--employee))" },
-          { name: "Available", value: 0, color: "hsl(var(--muted))" },
-        ],
-      };
+      return defaultStats;
     }
 
     const bySize: Record<Stall["sizeCategory"], { total: number; reserved: number }> = {
@@ -40,17 +65,41 @@ export default function EmployeeDashboard() {
       LARGE: { total: 0, reserved: 0 },
     };
 
+    const eventMap: Record<string, { name: string; total: number; reserved: number }> = events.reduce(
+      (acc, event) => {
+        acc[event.id] = { name: event.name, total: 0, reserved: 0 };
+        return acc;
+      },
+      {} as Record<string, { name: string; total: number; reserved: number }>,
+    );
+
     let reserved = 0;
     stalls.forEach((stall) => {
       bySize[stall.sizeCategory].total += 1;
+      const eventEntry = eventMap[stall.eventId] ?? {
+        name: stall.eventName ?? `Event ${stall.eventId.slice(0, 4)}`,
+        total: 0,
+        reserved: 0,
+      };
+      eventEntry.total += 1;
       if (stall.isReserved) {
         reserved += 1;
         bySize[stall.sizeCategory].reserved += 1;
+        eventEntry.reserved += 1;
       }
+      eventMap[stall.eventId] = eventEntry;
     });
 
     const total = stalls.length;
     const available = total - reserved;
+
+    const eventOccupancyData = Object.values(eventMap)
+      .map((entry) => ({
+        ...entry,
+        occupancy: entry.total ? Math.round((entry.reserved / entry.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
 
     return {
       totalStalls: total,
@@ -58,11 +107,12 @@ export default function EmployeeDashboard() {
       availableStalls: available,
       sizeStats: bySize,
       pieData: [
-        { name: "Reserved", value: reserved, color: "hsl(var(--employee))" },
-        { name: "Available", value: available, color: "hsl(var(--muted))" },
+        { name: "Reserved", value: reserved, fill: RESERVED_COLOR },
+        { name: "Available", value: available, fill: MUTED_COLOR },
       ],
+      eventOccupancyData,
     };
-  }, [stalls]);
+  }, [stalls, events]);
 
   if (!isAuthenticated) {
     return null;
@@ -163,17 +213,39 @@ export default function EmployeeDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Occupancy by Stall Size</CardTitle>
-                <CardDescription>Reserved vs Available stalls</CardDescription>
+                <CardDescription>Stacked view of reserved vs available inventory</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="reserved" fill="hsl(var(--employee))" name="Reserved" />
-                    <Bar dataKey="available" fill="hsl(var(--muted))" name="Available" />
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={chartData} barCategoryGap={24}>
+                    <defs>
+                      <linearGradient id="reservedGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={RESERVED_COLOR} stopOpacity={0.9} />
+                        <stop offset="100%" stopColor={RESERVED_COLOR} stopOpacity={0.6} />
+                      </linearGradient>
+                      <linearGradient id="availableGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={AVAILABLE_COLOR} stopOpacity={0.9} />
+                        <stop offset="100%" stopColor={AVAILABLE_COLOR} stopOpacity={0.5} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} strokeDasharray="4 8" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                    <Tooltip content={<DashboardTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.15 }} />
+                    <Bar
+                      dataKey="reserved"
+                      fill="url(#reservedGradient)"
+                      name="Reserved"
+                      stackId="sizes"
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="available"
+                      fill="url(#availableGradient)"
+                      name="Available"
+                      stackId="sizes"
+                      radius={[8, 8, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -182,30 +254,85 @@ export default function EmployeeDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Overall Occupancy</CardTitle>
-                <CardDescription>Total stall distribution</CardDescription>
+                <CardDescription>Live share of reserved vs open stalls</CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center justify-center">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
+              <CardContent className="relative h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart
+                    data={pieData}
+                    innerRadius="45%"
+                    outerRadius="95%"
+                    startAngle={90}
+                    endAngle={-270}
+                  >
+                    <PolarAngleAxis type="number" domain={[0, Math.max(totalStalls, 1)]} tick={false} />
+                    <RadialBar
                       dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                      background
+                      clockWise
+                      cornerRadius={16}
+                      fill={RESERVED_COLOR}
+                    />
+                    <Tooltip content={<DashboardTooltip />} />
+                  </RadialBarChart>
                 </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="text-4xl font-bold">{occupancyRate}%</span>
+                  <span className="text-sm text-muted-foreground">Occupancy</span>
+                </div>
+                <div className="mt-4 flex justify-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full" style={{ background: RESERVED_COLOR }} />
+                    <span className="text-muted-foreground">Reserved {reservedStalls}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full" style={{ background: MUTED_COLOR }} />
+                    <span className="text-muted-foreground">Available {availableStalls}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Events by Occupancy</CardTitle>
+              <CardDescription>Focus on the busiest fairs right now</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {eventOccupancyData.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No events found yet.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={eventOccupancyData} margin={{ left: 0, right: 0, top: 16, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={RESERVED_COLOR} stopOpacity={0.35} />
+                        <stop offset="95%" stopColor={RESERVED_COLOR} stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} interval={0} tick={{ fontSize: 12 }} />
+                    <YAxis
+                      domain={[0, 100]}
+                      tickFormatter={(value) => `${value}%`}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip content={<DashboardTooltip suffix="%" />} />
+                    <Area
+                      type="monotone"
+                      dataKey="occupancy"
+                      stroke={RESERVED_COLOR}
+                      strokeWidth={3}
+                      fill="url(#occupancyGradient)"
+                      dot={{ strokeWidth: 2, r: 4 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Stall Size Breakdown */}
           <Card>
@@ -241,6 +368,42 @@ export default function EmployeeDashboard() {
             </CardContent>
           </Card>
         </div>
+      </div>
+    </div>
+  );
+}
+
+type TooltipPayloadItem = {
+  name?: string;
+  value?: number;
+  color?: string;
+};
+
+interface DashboardTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+  suffix?: string;
+}
+
+function DashboardTooltip({ active, payload, label, suffix = "" }: DashboardTooltipProps) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-md border bg-card px-3 py-2 text-xs shadow-lg">
+      {label && <p className="mb-1 font-semibold">{label}</p>}
+      <div className="space-y-1">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center justify-between gap-4">
+            <span className="text-muted-foreground">{entry.name}</span>
+            <span className="font-semibold">
+              {entry.value}
+              {suffix}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
