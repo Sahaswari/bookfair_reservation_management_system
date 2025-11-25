@@ -47,7 +47,8 @@ export default function MyReservations() {
   }, [eventsQuery.data]);
 
   const cancelReservationMutation = useMutation({
-    mutationFn: (reservationId: string) => reservationApi.deleteReservation(reservationId),
+    mutationFn: (reservationId: string) =>
+      reservationApi.updateReservationStatus(reservationId, { status: "CANCELLED" }),
     onSuccess: () => {
       toast.success("Reservation cancelled");
       queryClient.invalidateQueries({ queryKey: ["reservations", user?.id] });

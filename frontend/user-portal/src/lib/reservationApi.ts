@@ -31,6 +31,10 @@ export interface CreateReservationPayload {
   eventId: string;
 }
 
+export interface UpdateReservationStatusPayload {
+  status: ReservationStatus;
+}
+
 export const reservationApi = {
   async createReservation(payload: CreateReservationPayload) {
     const res = await apiFetch<Reservation>("/api/reservations", {
@@ -47,5 +51,13 @@ export const reservationApi = {
 
   async deleteReservation(reservationId: string) {
     await apiFetch(`/api/reservations/${reservationId}`, { method: "DELETE" });
+  },
+
+  async updateReservationStatus(reservationId: string, payload: UpdateReservationStatusPayload) {
+    const res = await apiFetch<Reservation>(`/api/reservations/${reservationId}/status`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    return res.data;
   },
 };
