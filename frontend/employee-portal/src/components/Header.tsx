@@ -2,7 +2,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BookOpen, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 
-export default function Header() {
+type HeaderProps = {
+  isEmployee?: boolean;
+};
+
+export default function Header({ isEmployee = false }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLoggedIn = localStorage.getItem("employeeUser") === "true";
@@ -17,7 +21,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container flex h-16 items-center justify-between">
-        <Link to={isLoggedIn ? "/dashboard" : "/login"} className="flex items-center gap-2">
+        <Link to={isLoggedIn ? "/dashboard" : isEmployee ? "/login" : "/"} className="flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-employee" />
           <div>
             <h1 className="text-lg font-bold">CIBF 2025</h1>

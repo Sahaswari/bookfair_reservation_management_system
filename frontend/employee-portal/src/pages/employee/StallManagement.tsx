@@ -384,7 +384,7 @@ export default function StallManagement() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header isEmployee />
+      <Header />
 
       <div className="container py-8 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
