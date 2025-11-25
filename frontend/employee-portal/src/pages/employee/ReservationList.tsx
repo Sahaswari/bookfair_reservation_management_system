@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -16,9 +17,13 @@ import { Search, XCircle, ChevronLeft, ChevronRight, Loader2, CheckCircle } from
 import Header from "@/components/Header";
 import { useEmployeeAuth } from "@/hooks/useEmployeeAuth";
 import { reservationApi } from "@/lib/reservationApi";
+import { stallApi, type StallSizeCategory } from "@/lib/stallApi";
+import { userApi } from "@/lib/userApi";
 import { useToast } from "@/components/ui/use-toast";
 
 const ITEMS_PER_PAGE = 10;
+const SIZE_OPTIONS: StallSizeCategory[] = ["SMALL", "MEDIUM", "LARGE"];
+const STATUS_OPTIONS = ["PENDING", "CONFIRMED", "CANCELLED"] as const;
 
 const formatDate = (value?: string) => {
   if (!value) return "-";
@@ -31,7 +36,10 @@ export default function ReservationList() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [vendorFilter, setVendorFilter] = useState("");
+  const [vendorFilter, setVendorFilter] = useState<"ALL" | string>("ALL");
+  const [sizeFilter, setSizeFilter] = useState<"ALL" | StallSizeCategory>("ALL");
+  const [eventFilter, setEventFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | (typeof STATUS_OPTIONS)[number]>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
 
   const reservationsQuery = useQuery({
@@ -39,14 +47,45 @@ export default function ReservationList() {
     queryFn: () => reservationApi.getAllReservations(),
   });
 
+  const eventsQuery = useQuery({
+    queryKey: ["events", "all"],
+    queryFn: () => stallApi.listEvents(),
+  });
+
+  const vendorsQuery = useQuery({
+    queryKey: ["vendors", "all"],
+    queryFn: () => userApi.listVendors(),
+  });
+
   const reservations = reservationsQuery.data ?? [];
+  const eventNameById = useMemo(() => {
+    const lookup: Record<string, string> = {};
+    (eventsQuery.data ?? []).forEach((event) => {
+      lookup[event.id] = event.name;
+    });
+    return lookup;
+  }, [eventsQuery.data]);
 
   const filteredReservations = useMemo(() => {
     const normalized = searchQuery.trim().toLowerCase();
     let result = reservations;
 
-    if (vendorFilter.trim()) {
-      result = result.filter(r => r.userId === vendorFilter.trim());
+    if (vendorFilter !== "ALL") {
+      result = result.filter((r) => r.userId === vendorFilter);
+    }
+
+    if (sizeFilter !== "ALL") {
+      result = result.filter(
+        (r) => (r.sizeCategory ?? "").toUpperCase() === sizeFilter,
+      );
+    }
+
+    if (eventFilter !== "ALL") {
+      result = result.filter((r) => r.eventId === eventFilter);
+    }
+
+    if (statusFilter !== "ALL") {
+      result = result.filter((r) => r.status === statusFilter);
     }
 
     if (!normalized) return result;
@@ -56,7 +95,7 @@ export default function ReservationList() {
       const code = (reservation.stallCode || "").toLowerCase();
       return vendor.includes(normalized) || code.includes(normalized);
     });
-  }, [reservations, searchQuery, vendorFilter]);
+  }, [reservations, searchQuery, vendorFilter, sizeFilter, eventFilter, statusFilter]);
 
   const totalPages = Math.ceil(filteredReservations.length / ITEMS_PER_PAGE) || 1;
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -108,14 +147,82 @@ export default function ReservationList() {
                   className="pl-9"
                 />
               </div>
-              <Input
-                placeholder="Filter by vendor ID (calls /vendor endpoint)"
+              <Select
                 value={vendorFilter}
-                onChange={(e) => {
-                  setVendorFilter(e.target.value);
+                onValueChange={(value) => {
+                  setVendorFilter(value);
                   setCurrentPage(1);
                 }}
-              />
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Vendor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All vendors</SelectItem>
+                  {(vendorsQuery.data ?? []).map((vendor) => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      {vendor.companyName || `${vendor.firstName ?? ""} ${vendor.lastName ?? ""}`.trim() || vendor.email || vendor.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={eventFilter}
+                onValueChange={(value) => {
+                  setEventFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-52">
+                  <SelectValue placeholder="Event" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All events</SelectItem>
+                  {(eventsQuery.data ?? []).map((event) => (
+                    <SelectItem key={event.id} value={event.id}>
+                      {event.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={sizeFilter}
+                onValueChange={(value) => {
+                  setSizeFilter(value as "ALL" | StallSizeCategory);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Stall size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All sizes</SelectItem>
+                  {SIZE_OPTIONS.map((size) => (
+                    <SelectItem key={size} value={size}>
+                      {size.charAt(0) + size.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value as "ALL" | (typeof STATUS_OPTIONS)[number]);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All statuses</SelectItem>
+                  {STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status.charAt(0) + status.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -168,7 +275,9 @@ export default function ReservationList() {
                             <span className="text-xs text-muted-foreground">{reservation.userEmail}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{reservation.eventId ?? "-"}</TableCell>
+                        <TableCell>
+                          {eventNameById[reservation.eventId ?? ""] ?? reservation.eventId ?? "-"}
+                        </TableCell>
                         <TableCell className="font-semibold">
                           LKR {reservation.price?.toLocaleString() ?? "-"}
                         </TableCell>
@@ -183,27 +292,45 @@ export default function ReservationList() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Confirm Reservation"
+                              title="Approve Reservation"
                               onClick={() => confirmMutation.mutate(reservation.id)}
-                              disabled={reservation.status === "CONFIRMED" || confirmMutation.isPending}
+                              disabled={
+                                confirmMutation.isPending ||
+                                !["PENDING", "CANCELLED"].includes(reservation.status)
+                              }
                             >
                               {confirmMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
-                                <CheckCircle className={`h-4 w-4 ${reservation.status === "CONFIRMED" ? "text-muted-foreground" : "text-green-600"}`} />
+                                <CheckCircle
+                                  className={`h-4 w-4 ${
+                                    ["PENDING", "CANCELLED"].includes(reservation.status)
+                                      ? "text-green-600"
+                                      : "text-muted-foreground"
+                                  }`}
+                                />
                               )}
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Cancel Reservation"
+                              title="Reject Reservation"
                               onClick={() => cancelReservationMutation.mutate(reservation.id)}
-                              disabled={cancelReservationMutation.isPending}
+                              disabled={
+                                cancelReservationMutation.isPending ||
+                                !["PENDING", "CONFIRMED"].includes(reservation.status)
+                              }
                             >
                               {cancelReservationMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-destructive" />
+                                <XCircle
+                                  className={`h-4 w-4 ${
+                                    ["PENDING", "CONFIRMED"].includes(reservation.status)
+                                      ? "text-destructive"
+                                      : "text-muted-foreground"
+                                  }`}
+                                />
                               )}
                             </Button>
                           </div>
