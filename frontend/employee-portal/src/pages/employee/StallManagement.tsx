@@ -32,6 +32,7 @@ import {
   stallApi,
 } from "@/lib/stallApi";
 import { reservationApi, type Reservation } from "@/lib/reservationApi";
+import { userApi, type VendorSummary } from "@/lib/userApi";
 import { useEmployeeAuth } from "@/hooks/useEmployeeAuth";
 
 const sizeColors: Record<StallSizeCategory, string> = {
@@ -129,9 +130,15 @@ export default function StallManagement() {
     enabled: !!selectedEventId,
   });
 
+  const vendorsQuery = useQuery({
+    queryKey: ["vendors"],
+    queryFn: () => userApi.listVendors(),
+  });
+
   const stalls = stallsQuery.data || [];
   const availableStalls = availableStallsQuery.data || [];
   const reservationsForEvent = reservationsByEventQuery.data || [];
+  const vendors = vendorsQuery.data || [];
 
   const filteredStalls = useMemo(() => {
     const normalized = searchQuery.trim().toLowerCase();
@@ -163,6 +170,15 @@ export default function StallManagement() {
       ) ?? null
     );
   }, [reservationsForEvent, selectedStall?.id]);
+
+  const resolveVendorLabel = (vendor?: VendorSummary | null) => {
+    if (!vendor) return "";
+    if (vendor.companyName) return vendor.companyName;
+    const name = `${vendor.firstName ?? ""} ${vendor.lastName ?? ""}`.trim();
+    return name || vendor.email || "Vendor";
+  };
+
+  const selectedVendorLabel = resolveVendorLabel(vendors.find((v) => v.id === vendorId) ?? null);
 
   useEffect(() => {
     if (selectedStall) {
@@ -311,7 +327,7 @@ export default function StallManagement() {
   const handleReserve = () => {
     if (!selectedStall) return;
     if (!vendorId.trim()) {
-      toast({ title: "Vendor ID required to reserve", variant: "destructive" });
+      toast({ title: "Select a vendor to reserve", variant: "destructive" });
       return;
     }
     reserveMutation.mutate({ stallId: selectedStall.id, vendorId: vendorId.trim(), eventId: selectedStall.eventId });
@@ -737,18 +753,53 @@ export default function StallManagement() {
                     <Separator />
 
                     <div className="space-y-2">
-                      <Label>Vendor ID</Label>
-                      <Input
-                        placeholder="Vendor UUID"
-                        value={vendorId}
-                        onChange={(e) => setVendorId(e.target.value)}
-                      />
+                      <div className="flex items-center justify-between">
+                        <Label>Vendor</Label>
+                        {selectedVendorLabel && (
+                          <span className="text-xs text-muted-foreground">{selectedVendorLabel}</span>
+                        )}
+                      </div>
+                      <Select
+                        value={vendorId || undefined}
+                        onValueChange={(value) => setVendorId(value)}
+                        disabled={vendorsQuery.isLoading || vendors.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              vendorsQuery.isLoading
+                                ? "Loading vendors..."
+                                : vendors.length === 0
+                                  ? "No vendors available"
+                                  : "Select vendor"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vendors.map((vendor) => (
+                            <SelectItem key={vendor.id} value={vendor.id}>
+                              {resolveVendorLabel(vendor)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start px-2"
+                        onClick={() => setVendorId("")}
+                        disabled={!vendorId}
+                      >
+                        Clear selection
+                      </Button>
                       <div className="flex gap-2">
                         <Button
                           variant="employee"
                           className="flex-1"
                           onClick={handleReserve}
-                          disabled={reserveMutation.isPending || selectedStall.isReserved}
+                          disabled={
+                            reserveMutation.isPending || selectedStall.isReserved || !selectedStall || !vendorId
+                          }
                         >
                           {reserveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Reserve Stall
