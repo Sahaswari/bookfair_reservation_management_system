@@ -17,7 +17,8 @@ import { Info, X, RefreshCw, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { stallApi, type Stall, type StallSizeCategory, type Event } from "@/lib/stallApi";
-import { reservationApi } from "@/lib/reservationApi";
+import { reservationApi, type Reservation } from "@/lib/reservationApi";
+import { notificationApi } from "@/lib/notificationApi";
 import { toast } from "sonner";
 type UiStall = Stall & { status: "available" | "selected" | "reserved" };
 
@@ -83,11 +84,11 @@ export default function Reserve() {
   const selectedStallsData = uiStalls.filter((s) => selectedStalls.includes(s.id));
   const totalPrice = selectedStallsData.reduce((sum, s) => sum + s.price, 0);
 
-  const reserveMutation = useMutation({
+  const reserveMutation = useMutation<Reservation[]>({
     mutationFn: async () => {
       if (!user?.id) throw new Error("User not found");
       if (!selectedEventId) throw new Error("No event selected");
-      await Promise.all(
+      const reservations = await Promise.all(
         selectedStalls.map((stallId) =>
           reservationApi.createReservation({
             userId: user.id,
@@ -96,8 +97,36 @@ export default function Reserve() {
           }),
         ),
       );
+      return reservations;
     },
-    onSuccess: () => {
+    onSuccess: (reservations) => {
+      const stallLookup = new Map(selectedStallsData.map((stall) => [stall.id, stall]));
+
+      reservations.forEach((reservation) => {
+        const stallDetails = stallLookup.get(reservation.stallId);
+        const eventDetails = events.find((event) => event.id === reservation.eventId);
+        const eventName = eventDetails?.name ?? eventSummary?.name ?? "Book Fair";
+        const stallCode = stallDetails?.stallCode ?? reservation.stallId;
+        const salutation = user?.firstName ?? user?.email ?? "there";
+
+        void notificationApi
+          .createNotification({
+            userId: reservation.userId,
+            reservationId: reservation.id,
+            subject: `Your reservation for ${stallCode} is confirmed`,
+            message: `Hi ${salutation}, your reservation for ${stallCode} at ${eventName} is confirmed.`,
+            metadata: {
+              eventId: reservation.eventId,
+              eventName,
+              stallId: reservation.stallId,
+              stallCode,
+              price: stallDetails?.price ?? null,
+              source: "user-portal",
+            },
+          })
+          .catch((error) => console.error("Failed to send reservation notification", error));
+      });
+
       toast.success("Reservation successful");
       queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
       queryClient.invalidateQueries({ queryKey: ["reservations", user?.id] });

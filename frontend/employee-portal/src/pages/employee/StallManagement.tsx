@@ -33,6 +33,7 @@ import {
   stallApi,
 } from "@/lib/stallApi";
 import { reservationApi, type Reservation } from "@/lib/reservationApi";
+import { notificationApi } from "@/lib/notificationApi";
 import { userApi, type VendorSummary } from "@/lib/userApi";
 import { useEmployeeAuth } from "@/hooks/useEmployeeAuth";
 
@@ -258,7 +259,7 @@ export default function StallManagement() {
         stallId,
         eventId,
       }),
-    onSuccess: () => {
+    onSuccess: (reservation) => {
       toast({ title: "Stall reserved" });
       queryClient.invalidateQueries({ queryKey: ["stalls"] });
       queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
@@ -267,6 +268,31 @@ export default function StallManagement() {
       if (selectedEventId) {
         queryClient.invalidateQueries({ queryKey: ["reservations", selectedEventId] });
       }
+
+      const stallDetails = stalls.find((stall) => stall.id === reservation.stallId);
+      const vendorDetails = vendors.find((vendor) => vendor.id === reservation.userId);
+      const eventDetails = events.find((event) => event.id === reservation.eventId);
+      const vendorName = vendorDetails ? resolveVendorLabel(vendorDetails) : "Vendor";
+      const stallCode = stallDetails?.stallCode ?? "stall";
+      const eventName = eventDetails?.name ?? "Book Fair";
+
+      void notificationApi
+        .createNotification({
+          userId: reservation.userId,
+          reservationId: reservation.id,
+          subject: `Reservation confirmed for ${stallCode}`,
+          message: `${vendorName} reserved ${stallCode} for ${eventName}.`,
+          metadata: {
+            eventId: reservation.eventId,
+            eventName,
+            stallId: reservation.stallId,
+            stallCode,
+            price: stallDetails?.price ?? null,
+            source: "employee-portal",
+          },
+        })
+        .catch((error) => console.error("Failed to send reservation notification", error));
+
       setVendorId("");
     },
     onError: () => toast({ title: "Reservation failed", variant: "destructive" }),
