@@ -7,6 +7,7 @@ import com.bookfair.auth_service.dto.RegistrationRequest;
 import com.bookfair.auth_service.dto.TokenResponse;
 import com.bookfair.auth_service.dto.UpdateUserRequest;
 import com.bookfair.auth_service.dto.UserResponse;
+import com.bookfair.auth_service.dto.VendorSummaryResponse;
 import com.bookfair.auth_service.entity.User;
 import com.bookfair.auth_service.entity.UserRole;
 import com.bookfair.auth_service.entity.UserSession;
@@ -142,6 +143,14 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         deactivateActiveSessions(userId);
         publishUserDeleted(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VendorSummaryResponse> getVendors() {
+        return userRepository.findByRole(UserRole.VENDOR).stream()
+                .map(userMapper::toVendorSummary)
+                .toList();
     }
 
     public User loadUserById(UUID userId) {

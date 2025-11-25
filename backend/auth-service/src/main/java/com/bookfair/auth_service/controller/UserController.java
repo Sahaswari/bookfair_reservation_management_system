@@ -3,6 +3,7 @@ package com.bookfair.auth_service.controller;
 import com.bookfair.auth_service.dto.ApiResponse;
 import com.bookfair.auth_service.dto.UpdateUserRequest;
 import com.bookfair.auth_service.dto.UserResponse;
+import com.bookfair.auth_service.dto.VendorSummaryResponse;
 import com.bookfair.auth_service.security.CustomUserDetails;
 import com.bookfair.auth_service.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import java.time.Instant;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -43,5 +45,11 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> deleteCurrentUser(@AuthenticationPrincipal CustomUserDetails currentUser) {
         userService.deleteUser(currentUser.getUserId());
         return ResponseEntity.ok(ApiResponse.success("User account deleted successfully", null));
+    }
+
+    @GetMapping("/vendors")
+    public ResponseEntity<ApiResponse<List<VendorSummaryResponse>>> getVendors() {
+        List<VendorSummaryResponse> vendors = userService.getVendors();
+        return ResponseEntity.ok(ApiResponse.success("Vendors retrieved successfully", vendors));
     }
 }

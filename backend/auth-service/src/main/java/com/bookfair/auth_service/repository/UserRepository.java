@@ -4,6 +4,7 @@ import com.bookfair.auth_service.entity.User;
 import com.bookfair.auth_service.entity.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,5 +19,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByMobileNoAndIdNot(String mobileNo, UUID id);
 
     long countByIdAndRole(UUID id, UserRole role);
+
+    List<User> findByRole(UserRole role);
 }
 
