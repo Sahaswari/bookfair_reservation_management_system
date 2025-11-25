@@ -8,7 +8,7 @@
 
 ---
 
-## All 7 API Endpoints
+## All 8 API Endpoints
 
 ### 1. GET All Reservations
 ```
@@ -85,12 +85,21 @@ Body: None
 Expected Status: 200
 ```
 
+### 8. DELETE Reservation
+```
+DELETE http://localhost:8084/api/reservations/{reservation-id}
+Headers: None
+Body: None
+Expected Status: 200
+Admin Privilege: Yes
+```
+
 ---
 
 ## Testing Sequence (10 Steps)
 
 | Step | Method | Endpoint | Purpose |
-|------|--------|----------|---------|
+|------|--------|----------|----------|
 | 1 | GET | /api/reservations | Get all (should be empty) |
 | 2 | POST | /api/reservations | Create reservation #1 |
 | 3 | GET | /api/reservations | Get all (count=1) |
@@ -100,7 +109,8 @@ Expected Status: 200
 | 7 | GET | /api/reservations/user/{userId} | Filter by user |
 | 8 | GET | /api/reservations/event/{eventId} | Filter by event |
 | 9 | POST | /api/reservations | Create reservation #2 |
-| 10 | GET | /api/reservations | Get all (count=2) |
+| 10 | DELETE | /api/reservations/{id} | Delete reservation #2 |
+| 11 | GET | /api/reservations | Get all (count=1, #2 deleted) |
 
 ---
 

@@ -191,6 +191,21 @@ public class ReservationService {
     }
 
     /**
+     * Delete reservation (admin privilege)
+     */
+    @Transactional
+    public void deleteReservation(UUID id) {
+        log.info("Deleting reservation with ID: {}", id);
+        
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with ID: " + id));
+        
+        publishReservationDeletedEvent(reservation);
+        reservationRepository.delete(reservation);
+        log.info("Reservation deleted successfully with ID: {}", id);
+    }
+
+    /**
      * Convert Reservation entity to DTO
      */
     private ReservationDTO convertToDTO(Reservation reservation) {
@@ -372,4 +387,80 @@ public class ReservationService {
             // Don't throw - allow the status update to succeed even if event publishing fails
         }
     }
+
+    /**
+     * Publish reservation deleted event to Kafka
+     */
+    private void publishReservationDeletedEvent(Reservation reservation) {
+        try {
+            // Fetch user snapshot data
+            String userFirstName = null;
+            String userLastName = null;
+            String userEmail = null;
+            String userRole = null;
+            String userStatus = null;
+
+            UserSnapshot userSnapshot = userSnapshotRepository.findById(reservation.getUserId()).orElse(null);
+            if (userSnapshot != null) {
+                userFirstName = userSnapshot.getFirstName();
+                userLastName = userSnapshot.getLastName();
+                userEmail = userSnapshot.getEmail();
+                userRole = userSnapshot.getRole();
+                userStatus = userSnapshot.getStatus();
+            }
+
+            // Fetch stall snapshot data
+            String stallCode = null;
+            String sizeCategory = null;
+            BigDecimal price = null;
+            Float locationX = null;
+            Float locationY = null;
+
+            StallSnapshot stallSnapshot = stallSnapshotRepository.findById(reservation.getStallId()).orElse(null);
+            if (stallSnapshot != null) {
+                stallCode = stallSnapshot.getStallCode();
+                sizeCategory = stallSnapshot.getSizeCategory();
+                price = stallSnapshot.getPrice();
+                if (stallSnapshot.getLocationX() != null) {
+                    locationX = stallSnapshot.getLocationX().floatValue();
+                }
+                if (stallSnapshot.getLocationY() != null) {
+                    locationY = stallSnapshot.getLocationY().floatValue();
+                }
+            }
+
+            // Build and publish event
+            ReservationLifecycleEvent event = ReservationLifecycleEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .eventType("RESERVATION_DELETED")
+                    .occurredAt(Instant.now())
+                    .reservationId(reservation.getId())
+                    .userId(reservation.getUserId())
+                    .stallId(reservation.getStallId())
+                    .bookFairEventId(reservation.getEventId())
+                    .reservationDate(reservation.getReservationDate())
+                    .status(reservation.getStatus().toString())
+                    .confirmationCode(reservation.getConfirmationCode())
+                    .qrCodeUrl(reservation.getQrCodeUrl())
+                    .userFirstName(userFirstName)
+                    .userLastName(userLastName)
+                    .userEmail(userEmail)
+                    .userRole(userRole)
+                    .userStatus(userStatus)
+                    .stallCode(stallCode)
+                    .sizeCategory(sizeCategory)
+                    .price(price)
+                    .locationX(locationX)
+                    .locationY(locationY)
+                    .build();
+
+            reservationEventProducer.publishReservationEvent(event);
+            log.info("Published RESERVATION_DELETED event for reservation {}", reservation.getId());
+
+        } catch (Exception e) {
+            log.error("Error publishing deletion event for reservation {}", reservation.getId(), e);
+            // Don't throw - allow the deletion to succeed even if event publishing fails
+        }
+    }
 }
+
