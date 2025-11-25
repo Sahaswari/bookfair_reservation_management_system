@@ -85,6 +85,24 @@ public class ReservationController {
     }
 
     /**
+     * 4. Delete reservation (Admin privilege)
+     * DELETE /api/reservations/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteReservation(@PathVariable UUID id) {
+        try {
+            log.info("REST request to delete reservation with ID: {}", id);
+            reservationService.deleteReservation(id);
+            return ResponseEntity.ok(ApiResponse.success("Reservation deleted successfully", 
+                    "Reservation with ID " + id + " has been deleted"));
+        } catch (Exception e) {
+            log.error("Error deleting reservation", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * Get reservation by ID
      * GET /api/reservations/{id}
      */

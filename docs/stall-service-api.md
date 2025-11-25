@@ -15,45 +15,44 @@ The Stall Service uses a consistent `ApiResponse<T>` envelope:
 ```json
 {
   "success": true,
-  "message": "Operation successful",
-  "data": { ... },
-  "timestamp": "2025-11-22T08:15:30.123Z"
+---
+
+## 6. Generate Stall Layout — `POST /api/stalls/layout`
+
+Creates all recommended stalls for an event using the predefined layout template. Run this after creating an event so exhibitors can start reserving immediately.
+
+### Request Body
+
+```json
+{
+  "eventId": "c473562d-123a-456b-789c-0123456789ab"
 }
 ```
 
-## Endpoints Summary
+### Successful Response (`201 Created`)
 
-### Event Endpoints
+```json
+{
+  "success": true,
+  "message": "Stall layout generated successfully",
+  "data": [
+    {
+      "id": "d584673e-234b-567c-890d-1234567890bc",
+      "eventId": "c473562d-123a-456b-789c-0123456789ab",
+      "stallCode": "A-01",
+      "sizeCategory": "LARGE",
+      "price": 120000.0,
+      "locationX": 2.0,
+      "locationY": 5.0,
+      "isReserved": false
+    }
+  ]
+}
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/events` | POST | Create a new event |
-| `/api/events` | GET | Get all events |
-| `/api/events/{id}` | GET | Get event by ID |
-| `/api/events/year/{year}` | GET | Get events by year |
-| `/api/events/status/{status}` | GET | Get events by status (UPCOMING, ONGOING, ENDED) |
-| `/api/events/{id}` | PUT | Update an existing event |
-| `/api/events/{id}/status` | PATCH | Update only the event status |
-| `/api/events/{id}` | DELETE | Delete an event |
+### Error Responses
 
-### Stall Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/stalls` | POST | Create a new stall |
-| `/api/stalls` | GET | Get all stalls |
-| `/api/stalls/{id}` | GET | Get stall by ID |
-| `/api/stalls/event/{eventId}` | GET | Get all stalls for a specific event |
-| `/api/stalls/event/{eventId}/available` | GET | Get available stalls for an event |
-| `/api/stalls/event/{eventId}/available/size/{size}` | GET | Get available stalls by size |
-| `/api/stalls/vendor/{vendorId}` | GET | Get stalls reserved by a specific vendor |
-| `/api/stalls/{id}` | PUT | Update a stall |
-| `/api/stalls/{id}/reserve` | POST | Reserve a stall |
-| `/api/stalls/{id}/unreserve` | POST | Unreserve a stall |
-| `/api/stalls/{id}` | DELETE | Delete a stall |
-
----
-
+| Status | When it occurs |
 ## 1. Create Event — `POST /api/events`
 
 Creates a new book fair event.
@@ -211,6 +210,47 @@ Used to cache user information from the Auth Service to reduce inter-service cal
   "status": "ACTIVE"
 }
 ```
+
+---
+
+## 6. Generate Stall Layout — `POST /api/stalls/layout`
+
+Creates all recommended stalls for an event using the predefined layout template. Run this after creating an event so exhibitors can start reserving immediately.
+
+### Request Body
+
+```json
+{
+  "eventId": "c473562d-123a-456b-789c-0123456789ab"
+}
+```
+
+### Successful Response (`201 Created`)
+
+```json
+{
+  "success": true,
+  "message": "Stall layout generated successfully",
+  "data": [
+    {
+      "id": "d584673e-234b-567c-890d-1234567890bc",
+      "eventId": "c473562d-123a-456b-789c-0123456789ab",
+      "stallCode": "A-01",
+      "sizeCategory": "LARGE",
+      "price": 120000.0,
+      "locationX": 2.0,
+      "locationY": 5.0,
+      "isReserved": false
+    }
+  ]
+}
+```
+
+### Error Responses
+
+| Status | When it occurs |
+|--------|----------------|
+| `400 Bad Request` | The event ID is missing/invalid or stalls already exist for that event. |
 
 ## Integration Notes
 

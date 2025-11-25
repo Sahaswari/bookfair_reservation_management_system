@@ -176,6 +176,7 @@ psql -h localhost -p 5433 -U postgres -d stall_service_db
 | GET | `/api/stalls/event/{eventId}/available` | Get available stalls |
 | GET | `/api/stalls/size/{sizeCategory}` | Get stalls by size |
 | GET | `/api/stalls/code/{stallCode}` | Get stall by code |
+| POST | `/api/stalls/event/{eventId}/layout` | Generate stalls from a predefined layout |
 | PUT | `/api/stalls/{id}` | Update stall |
 | POST | `/api/stalls/{stallId}/reserve?userId={userId}` | Reserve a stall |
 | POST | `/api/stalls/{stallId}/unreserve` | Unreserve a stall |
@@ -223,19 +224,39 @@ curl -X POST http://localhost:8085/api/stalls \
   }'
 ```
 
-### 3. Get Available Stalls for an Event
+### 3. Generate a Predefined Stall Layout
+
+```bash
+curl -X POST http://localhost:8085/api/stalls/event/<EVENT_ID>/layout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "codePrefix": "CBF",
+    "startX": 0,
+    "startY": 0,
+    "columnSpacing": 2,
+    "rowSpacing": 2,
+    "rowsPerColumn": 10,
+    "configurations": [
+      { "size": "SMALL", "count": 15, "price": 25000 },
+      { "size": "MEDIUM", "count": 10, "price": 40000 },
+      { "size": "LARGE", "count": 10, "price": 55000 }
+    ]
+  }'
+```
+
+### 4. Get Available Stalls for an Event
 
 ```bash
 curl -X GET http://localhost:8085/api/stalls/event/<EVENT_ID>/available
 ```
 
-### 4. Reserve a Stall
+### 5. Reserve a Stall
 
 ```bash
 curl -X POST "http://localhost:8085/api/stalls/<STALL_ID>/reserve?userId=<USER_ID>"
 ```
 
-### 5. Get All Events
+### 6. Get All Events
 
 ```bash
 curl -X GET http://localhost:8085/api/events

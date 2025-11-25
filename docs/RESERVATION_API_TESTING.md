@@ -71,6 +71,7 @@ Expected output:
 | 5 | GET | `/api/reservations/status/{status}` | Filter by status | 200 |
 | 6 | GET | `/api/reservations/user/{userId}` | Get by user | 200 |
 | 7 | GET | `/api/reservations/event/{eventId}` | Get by event | 200 |
+| 8 | DELETE | `/api/reservations/{id}` | Delete reservation | 200 |
 
 ---
 
@@ -87,7 +88,8 @@ Follow this sequence for proper testing:
 7. **Test 7:** GET reservations by user
 8. **Test 8:** GET reservations by event
 9. **Test 9:** POST create second reservation
-10. **Test 10:** GET all reservations (verify count = 2)
+10. **Test 10:** DELETE second reservation
+11. **Test 11:** GET all reservations (verify count = 1, second deleted)
 
 ---
 
@@ -566,6 +568,77 @@ URL: {{base_url}}/api/reservations
 - Data array length = 2 ✅
 - Contains both reservations ✅
 - First is CONFIRMED, second is PENDING ✅
+
+---
+
+### TEST 11: Delete Second Reservation
+
+**Request:**
+```
+Method: DELETE
+URL: {{base_url}}/api/reservations/{reservation_id}
+```
+
+**Postman Steps:**
+1. Click **"+"** → New Request
+2. Name: **"11. Delete Reservation #2"**
+3. Method: **DELETE**
+4. URL: `{{base_url}}/api/reservations/def67890-5678-5678-5678-def678901234`
+   - Replace `def67890-5678-5678-5678-def678901234` with actual ID from TEST 9
+5. Click **Send**
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Reservation deleted successfully",
+  "data": "Reservation with ID def67890-5678-5678-5678-def678901234 has been deleted"
+}
+```
+
+**Verification:**
+- Status: **200 OK** ✅
+- Message confirms deletion ✅
+- Returns deleted reservation ID ✅
+- Kafka event published: RESERVATION_DELETED ✅
+
+---
+
+### TEST 12: Get All Reservations (After Deletion)
+
+**Request:**
+```
+Method: GET
+URL: {{base_url}}/api/reservations
+```
+
+**Postman Steps:**
+1. Click **"+"** → New Request
+2. Name: **"12. Get All Reservations (After Delete)"**
+3. Method: **GET**
+4. URL: `{{base_url}}/api/reservations`
+5. Click **Send**
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Reservations fetched successfully",
+  "data": [
+    {
+      "id": "abc12345-1234-1234-1234-abc123456789",
+      "status": "CONFIRMED",
+      "confirmationCode": "RES-XXXXXXXX"
+    }
+  ]
+}
+```
+
+**Verification:**
+- Status: **200 OK** ✅
+- Data array length = 1 ✅
+- Only first reservation remains ✅
+- Deleted reservation removed from database ✅
 
 ---
 
