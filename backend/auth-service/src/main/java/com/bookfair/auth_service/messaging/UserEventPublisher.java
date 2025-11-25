@@ -1,0 +1,88 @@
+package com.bookfair.auth_service.messaging;
+
+import com.bookfair.auth_service.config.KafkaProperties;
+import com.bookfair.auth_service.entity.User;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletionException;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class UserEventPublisher {
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaProperties kafkaProperties;
+    private final RetryTemplate kafkaRetryTemplate = RetryTemplate.builder()
+            .maxAttempts(3)
+            .exponentialBackoff(1000L, 2.0, 5000L)
+            .build();
+
+    public void publishUserRegistered(User user) {
+        publishEvent(user, "USER_CREATED", "registered");
+    }
+
+    public void publishUserUpdated(User user) {
+        publishEvent(user, "USER_UPDATED", "updated");
+    }
+
+    public void publishUserDeleted(User user) {
+        publishEvent(user, "USER_DELETED", "deleted");
+    }
+
+    private void publishEvent(User user, String eventType, String action) {
+        if (!kafkaProperties.isEnabled()) {
+            log.debug("Kafka disabled, skipping user {} event", action);
+            return;
+        }
+
+        UserLifecycleEvent event = UserLifecycleEvent.builder()
+                .eventId(UUID.randomUUID())
+                .eventType(eventType)
+                .occurredAt(Instant.now())
+                .userId(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .companyName(user.getCompanyName())
+                .email(user.getEmail())
+                .mobileNo(user.getMobileNo())
+                .role(user.getRole().name())
+                .status(user.getStatus().name())
+                .build();
+
+        String topic = Objects.requireNonNull(kafkaProperties.getUserEventsTopic(), "user-events topic must be configured");
+        String key = event.getUserId() != null ? event.getUserId().toString() : event.getEventId().toString();
+
+        kafkaRetryTemplate.execute(context -> {
+            try {
+                SendResult<String, Object> result = kafkaTemplate.send(
+                        topic,
+                        Objects.requireNonNull(key, "event key must not be null"),
+                        event).join();
+
+                log.info("Published user {} event for {} to partition {} with offset {} on attempt {}",
+                        action,
+                        user.getEmail(),
+                        result.getRecordMetadata().partition(),
+                        result.getRecordMetadata().offset(),
+                        context.getRetryCount() + 1);
+                return null;
+            } catch (CompletionException ex) {
+                log.warn("Attempt {} to publish user {} event for {} failed", context.getRetryCount() + 1, action, user.getEmail(), ex.getCause());
+                throw ex;
+            }
+        }, context -> {
+            log.error("Failed to publish user {} event for {} after {} attempts", action, user.getEmail(), context.getRetryCount() + 1, context.getLastThrowable());
+            return null;
+        });
+    }
+}
+
