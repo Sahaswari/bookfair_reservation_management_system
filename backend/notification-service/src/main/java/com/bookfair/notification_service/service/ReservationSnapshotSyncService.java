@@ -29,9 +29,9 @@ public class ReservationSnapshotSyncService {
 
         log.info("Syncing reservation snapshot for reservation: {}", event.getReservationId());
 
-        // Find or create reservation snapshot
+        // Find or create reservation snapshot using the reservation_id column
         ReservationSnapshot snapshot = reservationSnapshotRepository
-                .findById(event.getReservationId())
+            .findByReservationId(event.getReservationId())
                 .orElseGet(() -> {
                     log.info("Creating new reservation snapshot for reservation ID: {}", 
                             event.getReservationId());

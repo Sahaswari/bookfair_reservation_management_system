@@ -25,20 +25,10 @@ Headers: Content-Type: application/json
 Body: {
   "userId": "550e8400-e29b-41d4-a716-446655440000",
   "stallId": "660e8400-e29b-41d4-a716-446655440001",
-  "eventId": "770e8400-e29b-41d4-a716-446655440002",
-  "reservationDate": "2025-12-15",
-  "userFirstName": "John",
-  "userLastName": "Doe",
-  "userEmail": "john@example.com",
-  "userRole": "CUSTOMER",
-  "userStatus": "ACTIVE",
-  "stallCode": "STALL-001",
-  "sizeCategory": "MEDIUM",
-  "price": "5000",
-  "locationX": 10,
-  "locationY": 20
+  "eventId": "770e8400-e29b-41d4-a716-446655440002"
 }
 Expected Status: 201
+Notes: The service looks up user/stall snapshots and stamps the reservation date automatically.
 ```
 
 ### 3. GET Reservation by ID

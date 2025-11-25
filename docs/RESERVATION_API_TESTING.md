@@ -152,20 +152,11 @@ Headers: Content-Type: application/json
 {
   "userId": "550e8400-e29b-41d4-a716-446655440000",
   "stallId": "660e8400-e29b-41d4-a716-446655440001",
-  "eventId": "770e8400-e29b-41d4-a716-446655440002",
-  "reservationDate": "2025-12-15",
-  "userFirstName": "John",
-  "userLastName": "Doe",
-  "userEmail": "john@example.com",
-  "userRole": "CUSTOMER",
-  "userStatus": "ACTIVE",
-  "stallCode": "STALL-001",
-  "sizeCategory": "MEDIUM",
-  "price": "5000",
-  "locationX": 10,
-  "locationY": 20
+  "eventId": "770e8400-e29b-41d4-a716-446655440002"
 }
 ```
+
+> Only identifiers are required. The reservation date and all user/stall metadata come from existing snapshot tables synchronized via Kafka.
 
 7. Click **Send**
 
@@ -487,18 +478,7 @@ Headers: Content-Type: application/json
 {
   "userId": "880e8400-e29b-41d4-a716-446655440003",
   "stallId": "990e8400-e29b-41d4-a716-446655440004",
-  "eventId": "770e8400-e29b-41d4-a716-446655440002",
-  "reservationDate": "2025-12-20",
-  "userFirstName": "Jane",
-  "userLastName": "Smith",
-  "userEmail": "jane@example.com",
-  "userRole": "CUSTOMER",
-  "userStatus": "ACTIVE",
-  "stallCode": "STALL-002",
-  "sizeCategory": "LARGE",
-  "price": "8000",
-  "locationX": 15,
-  "locationY": 25
+  "eventId": "770e8400-e29b-41d4-a716-446655440002"
 }
 ```
 

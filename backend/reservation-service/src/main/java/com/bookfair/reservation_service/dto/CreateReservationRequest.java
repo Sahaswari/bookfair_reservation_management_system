@@ -5,11 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Request DTO for creating a new reservation
+ * Request DTO for creating a new reservation. Only identifiers are collected from the caller;
+ * related data is resolved server-side from snapshot tables.
  */
 @Data
 @NoArgsConstructor
@@ -24,21 +24,4 @@ public class CreateReservationRequest {
 
     @NotNull(message = "Event ID is required")
     private UUID eventId;
-
-    @NotNull(message = "Reservation date is required")
-    private LocalDate reservationDate;
-
-    // Optional user snapshot data
-    private String userFirstName;
-    private String userLastName;
-    private String userEmail;
-    private String userRole;
-    private String userStatus;
-
-    // Optional stall snapshot data
-    private String stallCode;
-    private String sizeCategory;
-    private String price;
-    private Float locationX;
-    private Float locationY;
 }

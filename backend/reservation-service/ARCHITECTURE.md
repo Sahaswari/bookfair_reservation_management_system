@@ -98,8 +98,7 @@
    {
      "userId": "uuid",
      "stallId": "uuid",
-     "eventId": "uuid",
-     "reservationDate": "2025-12-01"
+       "eventId": "uuid"
    }
    
 2. Controller Layer
@@ -108,8 +107,7 @@
    
 3. Service Layer
    ↓ Checks if stall already reserved
-   ↓ Creates/updates user snapshot
-   ↓ Creates/updates stall snapshot
+   ↓ Resolves user & stall snapshots via relations
    ↓ Creates reservation with PENDING status
    ↓ Generates confirmation code
    

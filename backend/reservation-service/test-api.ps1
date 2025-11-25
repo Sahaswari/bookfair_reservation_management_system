@@ -26,17 +26,6 @@ $newReservation = @{
     userId = "550e8400-e29b-41d4-a716-446655440001"
     stallId = "550e8400-e29b-41d4-a716-446655440002"
     eventId = "550e8400-e29b-41d4-a716-446655440003"
-    reservationDate = "2025-12-01"
-    userFirstName = "John"
-    userLastName = "Doe"
-    userEmail = "john.doe@example.com"
-    userRole = "VENDOR"
-    userStatus = "ACTIVE"
-    stallCode = "S001"
-    sizeCategory = "MEDIUM"
-    price = "1500.00"
-    locationX = 10.5
-    locationY = 20.3
 } | ConvertTo-Json
 
 try {
@@ -145,7 +134,6 @@ $duplicateReservation = @{
     userId = "550e8400-e29b-41d4-a716-446655440006"
     stallId = "550e8400-e29b-41d4-a716-446655440002"
     eventId = "550e8400-e29b-41d4-a716-446655440003"
-    reservationDate = "2025-12-01"
 } | ConvertTo-Json
 
 try {
