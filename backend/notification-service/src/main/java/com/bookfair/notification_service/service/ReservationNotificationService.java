@@ -118,21 +118,35 @@ public class ReservationNotificationService {
         Map<String, Object> variables = new HashMap<>();
 
         // User details
-        variables.put("firstName", user.getFirstName() != null ? user.getFirstName() : "");
+        variables.put("firstName", user.getFirstName() != null ? user.getFirstName() : "Valued Customer");
         variables.put("lastName", user.getLastName() != null ? user.getLastName() : "");
         variables.put("email", user.getEmail() != null ? user.getEmail() : "");
+        variables.put("userRole", user.getRole() != null ? user.getRole() : "CUSTOMER");
+        variables.put("userStatus", user.getStatus() != null ? user.getStatus() : "ACTIVE");
 
         // Reservation details
-        variables.put("confirmationCode", reservation.getConfirmationCode() != null ? reservation.getConfirmationCode() : "N/A");
-        variables.put("reservationDate", reservation.getReservationDate() != null ? reservation.getReservationDate().toString() : "N/A");
-        variables.put("status", reservation.getStatus() != null ? reservation.getStatus() : "N/A");
+        variables.put("confirmationCode", reservation.getConfirmationCode() != null ? reservation.getConfirmationCode() : "PENDING");
+        variables.put("reservationDate", reservation.getReservationDate() != null ? reservation.getReservationDate().toString() : "TBD");
+        variables.put("status", reservation.getStatus() != null ? reservation.getStatus() : "PENDING");
+        
+        // QR Code URL
+        String qrCodeUrl = reservation.getQrCodeUrl();
+        if (qrCodeUrl == null || qrCodeUrl.isEmpty()) {
+            // Fallback QR code placeholder
+            qrCodeUrl = "https://via.placeholder.com/200?text=QR+Code";
+        }
+        variables.put("qrCodeUrl", qrCodeUrl);
 
         // Stall details
-        variables.put("stallCode", reservation.getStallCode() != null ? reservation.getStallCode() : "N/A");
-        variables.put("sizeCategory", reservation.getSizeCategory() != null ? reservation.getSizeCategory() : "N/A");
-        variables.put("price", reservation.getPrice() != null ? reservation.getPrice().toString() : "0.00");
-        variables.put("locationX", reservation.getLocationX() != null ? reservation.getLocationX().toString() : "N/A");
-        variables.put("locationY", reservation.getLocationY() != null ? reservation.getLocationY().toString() : "N/A");
+        variables.put("stallCode", reservation.getStallCode() != null ? reservation.getStallCode() : "TBD");
+        variables.put("sizeCategory", reservation.getSizeCategory() != null ? reservation.getSizeCategory() : "Standard");
+        variables.put("price", reservation.getPrice() != null ? String.format("%.2f", reservation.getPrice()) : "0.00");
+        variables.put("locationX", reservation.getLocationX() != null ? reservation.getLocationX().toString() : "0");
+        variables.put("locationY", reservation.getLocationY() != null ? reservation.getLocationY().toString() : "0");
+        
+        // Event information
+        variables.put("eventDate", reservation.getReservationDate() != null ? reservation.getReservationDate().toString() : "TBD");
+        variables.put("dueDate", reservation.getReservationDate() != null ? reservation.getReservationDate().toString() : "TBD");
 
         return variables;
     }

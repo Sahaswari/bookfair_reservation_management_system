@@ -1,8 +1,11 @@
 package com.bookfair.notification_service.service;
 
 import com.bookfair.notification_service.exception.NotificationException;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +60,55 @@ public class EmailService {
         } catch (MessagingException e) {
             log.error("Failed to send email to: {}", to, e);
             throw new NotificationException("Failed to send email: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Send email with QR code attachment
+     *
+     * @param to           Recipient email address
+     * @param subject      Email subject
+     * @param body         Email body (HTML supported)
+     * @param qrCodeUrl    URL of the QR code image
+     * @param qrCodeBytes  QR code image bytes (optional, if URL fetch fails)
+     * @throws NotificationException if email sending fails
+     */
+    public void sendEmailWithQRCode(String to, String subject, String body, String qrCodeUrl, byte[] qrCodeBytes) {
+        if (!emailEnabled) {
+            log.info("Email sending is disabled. Skipping email to: {}", to);
+            return;
+        }
+
+        try {
+            log.info("Sending email with QR code to: {} with subject: {}", to, subject);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            
+            // Embed QR code in HTML body if URL is provided
+            String emailBody = body;
+            if (qrCodeUrl != null && !qrCodeUrl.isEmpty()) {
+                emailBody = body.replace("{{qrCodeUrl}}", qrCodeUrl);
+            }
+            
+            helper.setText(emailBody, true); // true indicates HTML
+
+            // Attach QR code as inline image if bytes are provided
+            if (qrCodeBytes != null && qrCodeBytes.length > 0) {
+                DataSource dataSource = new ByteArrayDataSource(qrCodeBytes, "image/png");
+                helper.addInline("qrcode", dataSource);
+            }
+
+            mailSender.send(message);
+            log.info("Email with QR code sent successfully to: {}", to);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send email with QR code to: {}", to, e);
+            throw new NotificationException("Failed to send email with QR code: " + e.getMessage(), e);
         }
     }
 

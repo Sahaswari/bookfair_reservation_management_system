@@ -95,7 +95,29 @@ public class NotificationService {
         }
 
         String subject = notification.getSubject() != null ? notification.getSubject() : "Book Fair Notification";
-        emailService.sendEmail(user.getEmail(), subject, notification.getMessage());
+        
+        // Build HTML email body using template if templateCode is provided
+        String emailBody;
+        if (notification.getTemplateCode() != null && !notification.getTemplateCode().isBlank()) {
+            // Render HTML template with metadata
+            emailBody = templateService.renderTemplate(notification.getTemplateCode(), notification.getMetadata());
+        } else {
+            // Fallback to plain message
+            emailBody = notification.getMessage();
+        }
+        
+        // Check if notification has QR code URL in metadata
+        String qrCodeUrl = null;
+        if (notification.getMetadata() != null && notification.getMetadata().containsKey("qrCodeUrl")) {
+            qrCodeUrl = notification.getMetadata().get("qrCodeUrl").toString();
+        }
+        
+        // Send email with QR code if available
+        if (qrCodeUrl != null && !qrCodeUrl.isEmpty()) {
+            emailService.sendEmailWithQRCode(user.getEmail(), subject, emailBody, qrCodeUrl, null);
+        } else {
+            emailService.sendEmail(user.getEmail(), subject, emailBody);
+        }
     }
 
     /**
