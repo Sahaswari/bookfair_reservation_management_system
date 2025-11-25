@@ -99,6 +99,13 @@ export const stallApi = {
     unwrap(apiFetch<Stall[]>(`/api/stalls/vendor/${vendorId}`)),
   createStall: (payload: CreateStallPayload) =>
     unwrap(apiFetch<Stall>("/api/stalls", { method: "POST", body: JSON.stringify(payload) })),
+  generateLayout: (eventId: string) =>
+    unwrap(
+      apiFetch<Stall[]>("/api/stalls/layout", {
+        method: "POST",
+        body: JSON.stringify({ eventId }),
+      }),
+    ),
   updateStall: (id: string, payload: UpdateStallPayload) =>
     unwrap(apiFetch<Stall>(`/api/stalls/${id}`, { method: "PUT", body: JSON.stringify(payload) })),
   reserveStall: (id: string, vendorId: string) =>

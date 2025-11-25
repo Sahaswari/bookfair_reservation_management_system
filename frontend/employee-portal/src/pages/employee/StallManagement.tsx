@@ -240,6 +240,17 @@ export default function StallManagement() {
     onError: () => toast({ title: "Failed to update stall", variant: "destructive" }),
   });
 
+  const generateLayoutMutation = useMutation({
+    mutationFn: (eventId: string) => stallApi.generateLayout(eventId),
+    onSuccess: () => {
+      toast({ title: "Bulk stalls created" });
+      queryClient.invalidateQueries({ queryKey: ["stalls"] });
+      queryClient.invalidateQueries({ queryKey: ["available-stalls"] });
+    },
+    onError: (error: Error) =>
+      toast({ title: error.message || "Failed to create bulk stalls", variant: "destructive" }),
+  });
+
   const reserveMutation = useMutation({
     mutationFn: ({ stallId, vendorId, eventId }: { stallId: string; vendorId: string; eventId: string }) =>
       reservationApi.createReservation({
@@ -323,6 +334,18 @@ export default function StallManagement() {
       locationX: stallForm.locationX ? Number(stallForm.locationX) : undefined,
       locationY: stallForm.locationY ? Number(stallForm.locationY) : undefined,
     });
+  };
+
+  const handleGenerateLayout = () => {
+    if (!selectedEventId) {
+      toast({ title: "Select an event first", variant: "destructive" });
+      return;
+    }
+    if (stalls.length > 0) {
+      toast({ title: "Event already has stalls", description: "Clear existing stalls before bulk generation", variant: "destructive" });
+      return;
+    }
+    generateLayoutMutation.mutate(selectedEventId);
   };
 
   const handleReserve = () => {
@@ -528,6 +551,16 @@ export default function StallManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!selectedEventId || generateLayoutMutation.isPending}
+              onClick={handleGenerateLayout}
+            >
+              {generateLayoutMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Bulk Create Stalls
+            </Button>
           </div>
         </div>
 
@@ -535,7 +568,7 @@ export default function StallManagement() {
           <CardHeader className="grid gap-2 md:grid-cols-5 md:items-center">
             <div className="md:col-span-2">
               <CardTitle>Select Event</CardTitle>
-              <CardDescription>Data flows through the stall-service endpoints via the gateway</CardDescription>
+              <CardDescription>Pick an event to view its stalls, availability, and reservations</CardDescription>
             </div>
             <div className="md:col-span-3 grid gap-3 md:grid-cols-3">
               <Select value={selectedEventId ?? undefined} onValueChange={(value) => setSelectedEventId(value)}>
@@ -584,7 +617,7 @@ export default function StallManagement() {
                   <div className="flex flex-wrap gap-3 items-center">
                     <Badge variant={statusVariants[selectedEvent.status]}>{selectedEvent.status}</Badge>
                     <span className="text-sm text-muted-foreground">
-                      {selectedEvent.location} • {selectedEvent.startDate} ? {selectedEvent.endDate}
+                      {selectedEvent.location} • {selectedEvent.startDate} to {selectedEvent.endDate}
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -683,7 +716,7 @@ export default function StallManagement() {
                   {stallsQuery.isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 </div>
                 <CardDescription>
-                  Live data from stall-service via /api/stalls/event/:eventId
+                  Live stall availability per event
                 </CardDescription>
               </CardHeader>
               <CardContent>
